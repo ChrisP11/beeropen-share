@@ -1,0 +1,32 @@
+<table class="table table-striped table-bordered align-middle">
+  <thead class="table-light">
+    <tr>
+      <th style="width:70px">Rank</th>
+      <th>Team</th>
+      <th style="width:80px">Out</th>
+      <th style="width:80px">In</th>
+      <th style="width:80px">Total</th>
+      <th style="width:90px">To Par</th>
+      <th style="width:100px">Thru</th>
+      <th style="width:100px">Card</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if rows %}
+      {% for r in rows %}
+        <tr>
+          <td>{{ r.rank|default:"—" }}</td>
+          <td>{{ r.team_name }}</td>
+          <td>{{ r.out|default:"—" }}</td>
+          <td>{{ r.in|default:"—" }}</td>
+          <td class="fw-bold">{{ r.total|default:"—" }}</td>
+          <td class="fw-bold">{{ r.to_par_str|default:"—" }}</td>
+          <td>{% if r.holes_entered %}Thru {{ r.holes_entered }}{% else %}—{% endif %}</td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{% url 'team_scorecard' r.team_id %}">Open</a></td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td colspan="8" class="text-center">No rounds found for today.</td></tr>
+    {% endif %}
+  </tbody>
+</table>

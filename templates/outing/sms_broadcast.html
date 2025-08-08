@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>SMS Broadcast</h2>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" class="card p-3">
+  {% csrf_token %}
+
+  <div class="mb-3">
+    <label class="form-label">Audience</label>
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="audience" id="aud_all" value="all" checked>
+      <label class="form-check-label" for="aud_all">All playing participants</label>
+    </div>
+    <div class="form-check d-flex align-items-center gap-2 mt-1">
+      <input class="form-check-input" type="radio" name="audience" id="aud_team" value="team">
+      <label class="form-check-label" for="aud_team">One team:</label>
+      <select name="team_id" class="form-select form-select-sm" style="max-width: 260px;">
+        {% for t in teams %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-check d-flex align-items-center gap-2 mt-1">
+      <input class="form-check-input" type="radio" name="audience" id="aud_test" value="test">
+      <label class="form-check-label" for="aud_test">Test number:</label>
+      <input type="text" name="test_number" class="form-control form-control-sm" placeholder="+13125551234" style="max-width: 260px;">
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Message</label>
+    <textarea name="message" class="form-control" rows="4" maxlength="800"></textarea>
+    <div class="form-text">Keep it concise. Consider including meeting location or tee-time reminders.</div>
+  </div>
+
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="add_stop" name="add_stop" checked>
+    <label class="form-check-label" for="add_stop">Append “Reply STOP to opt out.”</label>
+  </div>
+
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="dry_run" name="dry_run">
+    <label class="form-check-label" for="dry_run">Dry run (don’t actually send, just count)</label>
+  </div>
+
+  <button class="btn btn-primary">Send</button>
+</form>
+{% endblock %}

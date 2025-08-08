@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ team.name }} — Scorecard ({{ round.event_date }})</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <div style="overflow-x:auto">
+    <table class="table table-bordered align-middle">
+      <thead>
+        <tr>
+          <th>Row</th>
+          {% for h in holes %}
+            <th>{{ h.n }}</th>
+            {% if h.n == 9 %}
+              <th class="table-secondary">Out</th>
+            {% endif %}
+            {% if h.n == 18 %}
+              <th class="table-secondary">In</th>
+              <th class="table-secondary">Total</th>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody>
+        <!-- Team Strokes row -->
+        <tr>
+          <th>Strokes</th>
+          {% for h in holes %}
+            <td style="min-width:64px">
+              {% if can_edit %}
+                <input type="number" min="1" class="form-control form-control-sm"
+                       name="h{{ h.n }}" value="{{ h.strokes|default:'' }}">
+              {% else %}
+                {{ h.strokes|default:"—" }}
+              {% endif %}
+            </td>
+            {% if h.n == 9 %}
+              <td class="table-secondary fw-bold">{{ out_total|default:"—" }}</td>
+            {% endif %}
+            {% if h.n == 18 %}
+              <td class="table-secondary fw-bold">{{ in_total|default:"—" }}</td>
+              <td class="table-secondary fw-bold">{{ total|default:"—" }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+
+        <!-- Drive Used row -->
+        <tr>
+        <th>Drive Used</th>
+        {% for h in holes %}
+            <td>
+            {% if can_edit %}
+                <div class="d-flex flex-wrap gap-2">
+                {% for pi in players_info %}
+                    <label class="btn btn-outline-secondary btn-sm mb-1">
+                    <input type="radio"
+                            name="d{{ h.n }}"
+                            value="{{ pi.id }}"
+                            {% if h.drive_pid == pi.id %}checked{% endif %}>
+                    {{ pi.initials }}
+                    <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-secondary{% endif %} ms-1">F {{ pi.front }}</span>
+                    <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-secondary{% endif %} ms-1">B {{ pi.back }}</span>
+                    </label>
+                {% endfor %}
+                <!-- allow clearing -->
+                <label class="btn btn-outline-secondary btn-sm mb-1">
+                    <input type="radio" name="d{{ h.n }}" value=""
+                        {% if not h.drive_pid %}checked{% endif %}> —
+                </label>
+                </div>
+            {% else %}
+                {% if h.drive_pid %}
+                {% for pi in players_info %}{% if pi.id == h.drive_pid %}{{ pi.first }} {{ pi.last }}{% endif %}{% endfor %}
+                {% else %}—{% endif %}
+            {% endif %}
+            </td>
+            {% if h.n == 9 %}
+            <td class="table-secondary"></td>
+            {% endif %}
+            {% if h.n == 18 %}
+            <td class="table-secondary"></td>
+            <td class="table-secondary"></td>
+            {% endif %}
+        {% endfor %}
+        </tr>
+
+        <hr>
+        <h5>Drive Quota (per nine)</h5>
+        <div class="row">
+        <div class="col-md-6 mb-2">
+            <div class="card">
+            <div class="card-header">Front (1–9)</div>
+            <div class="card-body">
+                {% for pi in players_info %}
+                <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
+                    {{ pi.initials }}: {{ pi.front }}
+                </span>
+                {% endfor %}
+            </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-2">
+            <div class="card">
+            <div class="card-header">Back (10–18)</div>
+            <div class="card-body">
+                {% for pi in players_info %}
+                <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
+                    {{ pi.initials }}: {{ pi.back }}
+                </span>
+                {% endfor %}
+            </div>
+            </div>
+        </div>
+        </div>
+  </div>
+
+  {% if can_edit %}
+    <button class="btn btn-primary">Save</button>
+  {% endif %}
+</form>
+{% endblock %}

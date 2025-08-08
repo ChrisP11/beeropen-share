@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Leaderboard — {{ event_date }}</h2>
+
+<!-- Auto-refresh every 10s -->
+<div id="lb" hx-get="{% url 'leaderboard_partial' %}" hx-trigger="load, every 10s" hx-swap="outerHTML">
+  {% include "outing/_leaderboard_table.html" %}
+</div>
+
+{% endblock %}

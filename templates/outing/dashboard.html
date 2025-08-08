@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Beer Open</h2>
+<p class="text-muted">Event date: {{ event_date }}</p>
+<br>
+<a href="{% url 'magic_request' %}">Text me a sign-in link</a>
+<br>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="mb-3">
+  <a class="btn btn-primary" href="{% url 'leaderboard' %}">Leaderboard</a>
+  {% if request.user.is_staff %}
+    <a class="btn btn-outline-secondary" href="{% url 'team_manage' %}">Team Manager</a>
+  {% endif %}
+</div>
+
+{% if my_team %}
+  <div class="card mb-3">
+    <div class="card-header">Your Team</div>
+    <div class="card-body">
+      <h5 class="card-title">{{ my_team.name }}</h5>
+      <p class="card-text">
+        Tee time: {{ my_team.tee_time|default:"—" }}
+      </p>
+      <a class="btn btn-success" href="{% url 'team_scorecard' my_team.id %}">
+        Open Scorecard
+      </a>
+    </div>
+  </div>
+{% elif not request.user.is_staff %}
+  <p>You are not currently assigned to a team. Please contact the organizer.</p>
+{% endif %}
+
+{% if request.user.is_staff and teams %}
+  <h4>All Teams</h4>
+  <div class="list-group">
+    {% for t in teams %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ t.name }}</strong>
+          <small class="text-muted ms-2">Tee: {{ t.tee_time|default:"—" }}</small>
+        </div>
+        <div>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'team_scorecard' t.id %}">Open</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if request.user.is_staff %}
+  <a class="btn btn-outline-secondary" href="{% url 'sms_broadcast' %}">SMS Broadcast</a>
+{% endif %}
+
+{% endblock %}
