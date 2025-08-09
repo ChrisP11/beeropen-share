@@ -12,10 +12,13 @@ from django.http import HttpResponseForbidden, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Sum, Case, When, IntegerField, Count, Q
 from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
 from .magic_utils import create_magic_link, validate_token
+
+
 
 def current_event_date():
     return EventSettings.load().event_date
@@ -491,3 +494,33 @@ def magic_login_view(request, token_id: int, raw: str):
     login(request, tok.user)
     messages.success(request, "You’re signed in.")
     return redirect("dashboard")
+
+
+@csrf_exempt
+def twilio_inbound_view(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    body = (request.POST.get("Body") or "").strip().lower()
+    from_raw = request.POST.get("From") or ""
+    nums = prepare_recipients([from_raw])
+    from_norm = nums[0] if nums else None
+
+    if "help" in body:
+        return _twiml("Reply 'link' to get a 15-min sign-in link.")
+
+    if "link" in body and from_norm:
+        ten = from_norm[-10:]
+        player = Player.objects.filter(phone__icontains=ten).first()
+        if not (player and player.user):
+            return _twiml("We couldn't find your account. Contact the organizer.")
+        if not have_twilio_creds():
+            return _twiml("SMS is not configured yet.")
+        url = create_magic_link(request, player.user, ttl_seconds=15*60, sent_to=from_norm)
+        return _twiml(f"Beer Open sign-in link (15 min): {url}")
+
+    return _twiml("Unrecognized. Reply 'link' or 'help'.")
+
+def _twiml(message: str) -> HttpResponse:
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{message}</Message></Response>'
+    return HttpResponse(xml, content_type="application/xml")
