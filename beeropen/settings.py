@@ -162,3 +162,8 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Beer Open <no-reply@beerop
 # ---- Magic link base (optional override) ----
 MAGIC_BASE_URL = os.getenv("MAGIC_BASE_URL", "")
 
+# After successful login/logout, where to send the user
+LOGIN_REDIRECT_URL = "dashboard"   # or "/app/"
+LOGOUT_REDIRECT_URL = "home"       # sends to "/", which redirects to login or dashboard
+
+

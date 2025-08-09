@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Sign in</h2>
+
+{% if form.errors %}
+  <div class="alert alert-danger">Please check your username/password.</div>
+{% endif %}
+
+<form method="post" action="{% url 'login' %}">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label">Username</label>
+    {{ form.username }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Password</label>
+    {{ form.password }}
+  </div>
+
+  {% if next %}
+    <input type="hidden" name="next" value="{{ next }}">
+  {% endif %}
+
+  <button class="btn btn-primary">Sign in</button>
+</form>
+
+<p class="mt-3">
+  or <a href="{% url 'magic_request' %}">Text me a sign-in link</a>
+</p>
+{% endblock %}
