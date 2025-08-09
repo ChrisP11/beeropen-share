@@ -1,5 +1,14 @@
 <!doctype html>
+
 <html>
+  {% if request.user.is_authenticated %}
+    <span class="me-2">Hi, {{ request.user.first_name|default:request.user.username }}</span>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'logout' %}">Log out</a>
+  {% else %}
+    <a class="btn btn-sm btn-primary me-2" href="{% url 'login' %}">Log in</a>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'magic_request' %}">Text me a sign-in link</a>
+  {% endif %}
+
   <head><title>Beer Open</title></head>
   <body>
     <header><h1>Beer Open</h1></header>
