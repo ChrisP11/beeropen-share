@@ -21,21 +21,47 @@ def current_event_date():
     return EventSettings.load().event_date
 
 
+# REPLACE your team_scorecard_view with this version (same body + finalize logic)
 @login_required
 def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
     team = get_object_or_404(Team, pk=team_id)
 
     # Who can view / edit?
     is_member = team.players.filter(user=request.user).exists()
-    can_edit = request.user.is_staff or team.players.filter(user=request.user, can_score=True).exists()
     if not (request.user.is_staff or is_member):
         return HttpResponseForbidden("Not your team")
 
-    # One round per team per event date (today for now)
+    # Base edit right (before lock)
+    base_can_edit = request.user.is_staff or team.players.filter(user=request.user, can_score=True).exists()
+
+    # One round per team per event date
     round_obj, _ = Round.objects.get_or_create(team=team, event_date=current_event_date())
 
-    # Handle POST (save strokes + drive used)
-    if request.method == "POST" and can_edit:
+    # Lock state + effective edit right
+    is_final = bool(round_obj.finalized_at)
+    can_edit = base_can_edit and not is_final
+
+    # ---------- POST ----------
+    if request.method == "POST":
+        action = request.POST.get("action", "save")
+
+        # Admin-only unlock
+        if action == "unlock":
+            if request.user.is_staff and is_final:
+                round_obj.finalized_at = None
+                round_obj.finalized_by = None
+                round_obj.save(update_fields=["finalized_at", "finalized_by"])
+                messages.info(request, "Round unlocked.")
+            else:
+                messages.error(request, "You can’t unlock this round.")
+            return redirect("team_scorecard", team_id=team.id)
+
+        # If locked, block edits
+        if not can_edit:
+            messages.error(request, "This scorecard is locked.")
+            return redirect("team_scorecard", team_id=team.id)
+
+        # ----- Save strokes + drives (your existing logic) -----
         for h in range(1, 19):
             strokes_key = f"h{h}"
             drive_key   = f"d{h}"
@@ -55,10 +81,9 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
                 if p:
                     DriveUsed.objects.update_or_create(score=sc, defaults={"player": p})
             else:
-                # If empty selection, remove any existing drive record
                 DriveUsed.objects.filter(score=sc).delete()
 
-        # --- Quota check (warn only) ---
+        # --- Quota check (warn on save, as you had) ---
         entered_front = Score.objects.filter(
             round=round_obj, hole__lte=9, strokes__isnull=False
         ).count()
@@ -89,6 +114,42 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
                 messages.warning(request, f"Back nine quota: no drive used yet for {names}.")
         # --- end quota check ---
 
+        # If finalize, enforce and lock
+        if action == "finalize":
+            holes_entered = Score.objects.filter(round=round_obj, strokes__isnull=False).count()
+            if holes_entered < 18:
+                messages.error(request, f"Cannot finalize: only {holes_entered}/18 holes have scores.")
+                return redirect("team_scorecard", team_id=team.id)
+
+            # Recompute drive counts to enforce ≥1 on each nine
+            drive_qs = DriveUsed.objects.filter(score__round=round_obj).select_related("score")
+            players_all = list(team.players.all())
+            front_counts = {p.id: 0 for p in players_all}
+            back_counts  = {p.id: 0 for p in players_all}
+            for du in drive_qs:
+                if du.score.hole <= 9:
+                    front_counts[du.player_id] += 1
+                else:
+                    back_counts[du.player_id] += 1
+
+            missing_front = [p for p in players_all if front_counts.get(p.id, 0) == 0]
+            missing_back  = [p for p in players_all if back_counts.get(p.id, 0) == 0]
+            if missing_front or missing_back:
+                if missing_front:
+                    names = ", ".join(f"{p.first_name} {p.last_name}" for p in missing_front)
+                    messages.error(request, f"Front nine missing drive from: {names}")
+                if missing_back:
+                    names = ", ".join(f"{p.first_name} {p.last_name}" for p in missing_back)
+                    messages.error(request, f"Back nine missing drive from: {names}")
+                return redirect("team_scorecard", team_id=team.id)
+
+            round_obj.finalized_at = now()
+            round_obj.finalized_by = request.user
+            round_obj.save(update_fields=["finalized_at", "finalized_by"])
+            messages.success(request, "Scorecard finalized. Congrats!")
+            return redirect("team_scorecard", team_id=team.id)
+
+        messages.success(request, "Saved.")
         return redirect("team_scorecard", team_id=team.id)
 
     # ---------- GET: build simple structures for the template ----------
@@ -136,20 +197,21 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
             "back":  back_counts.get(p.id, 0),
         })
 
-    # can_edit already computed above; reuse it
     return render(request, "outing/scorecard.html", {
         "team": team,
         "round": round_obj,
         "players": players,
-        "players_info": players_info,  # drive used count
+        "players_info": players_info,
         "holes": holes,
         "out_total": out_total,
         "in_total": in_total,
         "total": total,
-        "can_edit": can_edit,
+        "can_edit": can_edit,     # now respects lock
+        "is_final": is_final,     # NEW
         "front_counts": front_counts,
         "back_counts": back_counts,
     })
+
 
 
 def _leaderboard_rows(event_date: date):

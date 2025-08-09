@@ -35,6 +35,8 @@ class Round(models.Model):
     team       = models.ForeignKey(Team, on_delete=models.CASCADE)
     event_date = models.DateField(default=date.today)
     created_at = models.DateTimeField(auto_now_add=True)
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    finalized_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="finalized_rounds")
 
     class Meta:
         unique_together = ("team", "event_date")

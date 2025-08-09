@@ -2,6 +2,12 @@
 {% block content %}
 <h2>{{ team.name }} — Scorecard ({{ round.event_date }})</h2>
 
+{% if is_final %}
+  <div class="alert alert-success">
+    Finalized at {{ round.finalized_at }}{% if round.finalized_by %} by {{ round.finalized_by }}{% endif %}
+  </div>
+{% endif %}
+
 <form method="post">
   {% csrf_token %}
   <div style="overflow-x:auto">
@@ -84,6 +90,7 @@
             {% endif %}
         {% endfor %}
         </tr>
+        </table>
 
         <hr>
         <h5>Drive Quota (per nine)</h5>
@@ -115,8 +122,15 @@
         </div>
   </div>
 
-  {% if can_edit %}
-    <button class="btn btn-primary">Save</button>
+  {% if not is_final %}
+    {% if can_edit %}
+      <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
+      <button class="btn btn-success"  name="action" value="finalize">Finalize</button>
+    {% endif %}
+  {% else %}
+    {% if request.user.is_staff %}
+      <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
+    {% endif %}
   {% endif %}
 </form>
 {% endblock %}
