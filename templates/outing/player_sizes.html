@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Players & Shirt Sizes</h2>
+<table class="table table-sm table-striped">
+  <thead>
+    <tr><th>First</th><th>Last</th><th>Team(s)</th><th>Shirt size</th></tr>
+  </thead>
+  <tbody>
+    {% for p in players %}
+      <tr>
+        <td>{{ p.first_name }}</td>
+        <td>{{ p.last_name }}</td>
+        <td>
+          {% for t in p.teams.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+        </td>
+        <td>{{ p.shirt_size|default:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">No players yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

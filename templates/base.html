@@ -9,6 +9,14 @@
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'magic_request' %}">Text me a sign-in link</a>
   {% endif %}
 
+  {% if request.user.is_staff %}
+  <br>
+  <a class="btn btn-sm btn-outline-secondary me-2" href="{% url 'player_sizes' %}">Shirt sizes</a>
+  <br>
+  {# if your inbox route is named 'sms_replies', show it too #}
+  <a class="btn btn-sm btn-outline-secondary" href="{% url 'sms_replies' %}">SMS inbox</a>
+{% endif %}
+
   <head><title>Beer Open</title></head>
   <body>
     <header><h1>Beer Open</h1></header>

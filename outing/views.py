@@ -639,3 +639,9 @@ def sms_replies_view(request):
             .select_related("player")
             .order_by("-received_at")[:200])
     return render(request, "outing/sms_replies.html", {"rows": rows})
+
+
+@staff_member_required
+def player_sizes_view(request):
+    players = Player.objects.prefetch_related("teams").order_by("last_name", "first_name")
+    return render(request, "outing/player_sizes.html", {"players": players})
