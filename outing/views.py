@@ -5,19 +5,19 @@ from django.utils import timezone
 from typing import Dict, List, Optional
 from collections import Counter
 
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Sum, Case, When, IntegerField, Count, Q
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken
+from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
 from .magic_utils import create_magic_link, validate_token
-
 
 
 def current_event_date():
@@ -496,31 +496,146 @@ def magic_login_view(request, token_id: int, raw: str):
     return redirect("dashboard")
 
 
+SIZE_MAP = {
+    "XS": {"XS", "XSMALL", "X-SMALL"},
+    "S":  {"S", "SM", "SMALL"},
+    "M":  {"M", "MED", "MEDIUM"},
+    "L":  {"L", "LG", "LARGE"},
+    "XL": {"XL", "X-LARGE"},
+    "2XL": {"2X", "XXL", "2XL", "XX-LARGE"},
+    "3XL": {"3X", "XXXL", "3XL", "XXX-LARGE"},
+}
+def _normalize_size(text: str) -> str | None:
+    t = "".join(ch for ch in text.upper() if ch.isalnum() or ch in {" ", "-"})
+    tokens = [tok for tok in t.replace("-", " ").split() if tok]
+    # allow bare "L", "XL", etc. or phrases like "size xl", "shirt 2xl"
+    for tok in tokens[::-1]:  # prefer last token
+        for canon, synonyms in SIZE_MAP.items():
+            if tok in synonyms:
+                return canon
+    return None
+
 @csrf_exempt
 def twilio_inbound_view(request):
     if request.method != "POST":
         return HttpResponse(status=405)
 
-    body = (request.POST.get("Body") or "").strip().lower()
+    body = (request.POST.get("Body") or "").strip()
+    body_lc = body.lower()
     from_raw = request.POST.get("From") or ""
     nums = prepare_recipients([from_raw])
     from_norm = nums[0] if nums else None
 
-    if "help" in body:
-        return _twiml("Reply 'link' to get a 15-min sign-in link.")
-
-    if "link" in body and from_norm:
+    # Resolve player by last 10 digits
+    player = None
+    if from_norm:
         ten = from_norm[-10:]
         player = Player.objects.filter(phone__icontains=ten).first()
-        if not (player and player.user):
-            return _twiml("We couldn't find your account. Contact the organizer.")
+
+    # Log every inbound
+    SMSResponse.objects.create(
+        from_number=from_norm or (from_raw or ""),
+        message_body=body,
+        player=player,
+        campaign="2025_shirts"
+    )
+
+    if "help" in body_lc:
+        return _twiml("Reply 'link' for a sign-in link. Reply S/M/L/XL/2XL/3XL to set your shirt size.")
+
+    if "link" in body_lc and from_norm and player and player.user:
         if not have_twilio_creds():
-            return _twiml("SMS is not configured yet.")
+            return _twiml("SMS sending not configured.")
         url = create_magic_link(request, player.user, ttl_seconds=15*60, sent_to=from_norm)
         return _twiml(f"Beer Open sign-in link (15 min): {url}")
 
-    return _twiml("Unrecognized. Reply 'link' or 'help'.")
+    # Size capture (works even without keyword)
+    size = _normalize_size(body)
+    if size and player:
+        player.shirt_size = size
+        player.save(update_fields=["shirt_size"])
+        return _twiml(f"Got it — your shirt size is set to {size}. Thanks!")
+
+    return _twiml("Thanks! Reply S/M/L/XL/2XL/3XL to set your shirt size, or 'link' for a sign-in link.")
 
 def _twiml(message: str) -> HttpResponse:
     xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{message}</Message></Response>'
     return HttpResponse(xml, content_type="application/xml")
+
+
+@staff_member_required
+def sms_broadcast_view(request):
+    teams = Team.objects.order_by("name")
+
+    if request.method == "POST":
+        audience    = request.POST.get("audience", "all")   # "all" | "team" | "test"
+        team_id     = request.POST.get("team_id")
+        test_number = (request.POST.get("test_number") or "").strip()
+        body        = (request.POST.get("message") or "").strip()
+        add_stop    = bool(request.POST.get("add_stop"))
+        dry_run     = bool(request.POST.get("dry_run"))
+
+        if not body:
+            messages.error(request, "Message is required.")
+            return redirect("sms_broadcast")
+
+        if add_stop:
+            body = body.rstrip() + " Reply STOP to opt out."
+
+        # Build recipient list based on audience
+        recipients = []
+        if audience == "test":
+            recipients = prepare_recipients([test_number])
+            if not recipients:
+                messages.error(request, "Enter a valid test number (e.g. +13125551212).")
+                return redirect("sms_broadcast")
+            # Make it obvious this is a test
+            body = "[TEST] " + body
+
+        elif audience == "team":
+            if not team_id:
+                messages.error(request, "Choose a team.")
+                return redirect("sms_broadcast")
+            team = get_object_or_404(Team, pk=team_id)
+            qs = (Player.objects
+                  .filter(teams=team, playing=True)
+                  .exclude(phone__isnull=True).exclude(phone__exact=""))
+            recipients = prepare_recipients([p.phone for p in qs])
+            if not recipients:
+                messages.error(request, f"No valid phone numbers for team {team.name}.")
+                return redirect("sms_broadcast")
+
+        else:  # "all"
+            qs = (Player.objects
+                  .filter(playing=True)
+                  .exclude(phone__isnull=True).exclude(phone__exact=""))
+            recipients = prepare_recipients([p.phone for p in qs])
+            if not recipients:
+                messages.error(request, "No valid phone numbers for playing participants.")
+                return redirect("sms_broadcast")
+
+        if not have_twilio_creds():
+            messages.error(request, "Twilio is not configured on this environment.")
+            return redirect("sms_broadcast")
+
+        # Send (or dry-run)
+        res = broadcast(recipients, body, dry_run=dry_run)
+        verb = "Would send to" if dry_run else "Sent to"
+        messages.success(request, f"{verb} {len(res['sent'])} number(s).")
+
+        if res["errors"]:
+            sample = ", ".join(e[0] for e in res["errors"][:5])
+            messages.error(request, f"Errors for {len(res['errors'])} recipient(s). Example(s): {sample}")
+
+        return redirect("sms_broadcast")
+
+    # GET
+    return render(request, "outing/sms_broadcast.html", {"teams": teams})
+
+
+@staff_member_required
+def sms_replies_view(request):
+    rows = (SMSResponse.objects
+            .select_related("player")
+            .order_by("-received_at")[:200])
+    return render(request, "outing/sms_replies.html", {"rows": rows})

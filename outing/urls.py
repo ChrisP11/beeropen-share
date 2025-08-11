@@ -24,7 +24,7 @@ urlpatterns = [
 
     # SMS broadcast MVP
     path("admin/sms/broadcast/", views.sms_broadcast_view, name="sms_broadcast"),
-    path("twilio/sms/inbound/", views.twilio_inbound_view, name="twilio_inbound") 
-    
+    path("twilio/sms/inbound/", views.twilio_inbound_view, name="twilio_inbound"), 
+    path("admin/sms/replies/",   views.sms_replies_view,   name="sms_replies"),  
 
 ]

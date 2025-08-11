@@ -5,7 +5,7 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
 
-from .models import Player, Team, Round, Score, DriveUsed, CoursePar, EventSettings
+from .models import Player, Team, Round, Score, DriveUsed, CoursePar, EventSettings, SMSResponse
 
 from .magic_utils import create_magic_link
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
@@ -187,3 +187,9 @@ class EventSettingsAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Only allow adding if none exists
         return not EventSettings.objects.exists()
+
+@admin.register(SMSResponse)
+class SMSResponseAdmin(admin.ModelAdmin):
+    list_display = ("received_at", "from_number", "player", "campaign", "message_body")
+    list_filter  = ("campaign", "received_at")
+    search_fields = ("from_number", "message_body", "player__first_name", "player__last_name")

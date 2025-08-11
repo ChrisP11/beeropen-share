@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Recent SMS Replies</h2>
+<table class="table table-sm">
+  <thead><tr><th>Time</th><th>From</th><th>Player</th><th>Campaign</th><th>Body</th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.received_at }}</td>
+        <td>{{ r.from_number }}</td>
+        <td>{% if r.player %}{{ r.player.first_name }} {{ r.player.last_name }}{% else %}—{% endif %}</td>
+        <td>{{ r.campaign }}</td>
+        <td>{{ r.message_body }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No replies yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

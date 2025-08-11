@@ -8,6 +8,7 @@ class Player(models.Model):
     last_name  = models.CharField(max_length=30)
     email      = models.EmailField(blank=True)
     phone      = models.CharField(max_length=20, blank=True)
+    shirt_size = models.CharField(max_length=8, blank=True)
     notes      = models.TextField(blank=True)
     playing    = models.BooleanField(default=True)  # toggle per year
     can_score = models.BooleanField(
@@ -113,3 +114,14 @@ class MagicLoginToken(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["expires_at", "used_at"])]
+
+
+class SMSResponse(models.Model):  # NEW
+    received_at  = models.DateTimeField(auto_now_add=True)
+    from_number  = models.CharField(max_length=20)
+    message_body = models.TextField()
+    player       = models.ForeignKey(Player, null=True, blank=True, on_delete=models.SET_NULL)
+    campaign     = models.CharField(max_length=40, blank=True)  # e.g., "2025_shirts"
+    def __str__(self):
+        who = self.player and f"{self.player.first_name} {self.player.last_name}" or self.from_number
+        return f"{self.received_at:%Y-%m-%d %H:%M} {who}: {self.message_body[:40]}"
