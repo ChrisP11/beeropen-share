@@ -11,10 +11,12 @@
 
   {% if request.user.is_staff %}
   <br>
-  <a class="btn btn-sm btn-outline-secondary me-2" href="{% url 'player_sizes' %}">Shirt sizes</a>
+  <a class="btn btn-sm btn-outline-secondary me-2" href="{% url 'player_sizes' %}">Shirt Sizes</a>
+  <br>
+  <a class="btn btn-sm btn-outline-secondary" href="{% url 'player_bulk_import' %}">Bulk Import</a>
   <br>
   {# if your inbox route is named 'sms_replies', show it too #}
-  <a class="btn btn-sm btn-outline-secondary" href="{% url 'sms_replies' %}">SMS inbox</a>
+  <a class="btn btn-sm btn-outline-secondary" href="{% url 'sms_replies' %}">SMS Inbox</a>
 {% endif %}
 
   <head><title>Beer Open</title></head>

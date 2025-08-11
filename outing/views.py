@@ -1,3 +1,4 @@
+import csv, io
 from datetime import date, time
 from django.utils.timezone import now
 from django.utils import timezone
@@ -645,3 +646,118 @@ def sms_replies_view(request):
 def player_sizes_view(request):
     players = Player.objects.prefetch_related("teams").order_by("last_name", "first_name")
     return render(request, "outing/player_sizes.html", {"players": players})
+
+
+@staff_member_required
+def player_bulk_import_view(request):
+    """
+    Upload or paste CSV with columns like:
+    First Name,Last Name,Email,Phone,Status
+    (extra columns like 'Name' are ignored)
+
+    Rules:
+      - playing = True only if Status == "Yes" (case-insensitive exact match)
+      - phone normalized to +1XXXXXXXXXX when possible
+      - match existing players by Email (preferred), else by Phone (last 10), else by First+Last
+    """
+    results = []
+    created = updated = skipped = 0
+
+    if request.method == "POST":
+        dry_run = bool(request.POST.get("dry_run"))
+        content = ""
+
+        f = request.FILES.get("csv_file")
+        if f:
+            content = f.read().decode("utf-8", errors="ignore")
+        else:
+            content = (request.POST.get("csv_text") or "").strip()
+
+        if not content:
+            messages.error(request, "Provide a CSV file or paste CSV text.")
+            return redirect("player_bulk_import")
+
+        reader = csv.DictReader(io.StringIO(content))
+        # normalize headers a bit
+        field_map = {k.lower().strip(): k for k in reader.fieldnames or []}
+
+        def get(row, *keys):
+            for k in keys:
+                src = field_map.get(k.lower())
+                if src and row.get(src) is not None:
+                    return (row.get(src) or "").strip()
+            return ""
+
+        rownum = 0
+        for row in reader:
+            rownum += 1
+            first = get(row, "First Name", "First")
+            last  = get(row, "Last Name", "Last")
+            email = get(row, "Email")
+            phone_raw = get(row, "Phone", "Cell", "Mobile")
+            status = get(row, "Status")
+
+            if not any([first, last, email, phone_raw]):
+                skipped += 1
+                results.append((rownum, "skip(blank)", ""))
+                continue
+
+            # normalize phone
+            phone = ""
+            if phone_raw:
+                nums = prepare_recipients([phone_raw])
+                phone = nums[0] if nums else ""
+
+            # ONLY 'Yes' means playing
+            playing = (status.lower() == "yes")
+
+            # find existing: email > phone > name
+            q = Player.objects.all()
+            candidate = None
+            if email:
+                candidate = q.filter(email__iexact=email).first()
+            if not candidate and phone:
+                ten = phone[-10:]
+                candidate = q.filter(phone__icontains=ten).first()
+            if not candidate and first and last:
+                candidate = q.filter(first_name__iexact=first, last_name__iexact=last).first()
+
+            if dry_run:
+                action = "would_create" if not candidate else "would_update"
+                results.append((rownum, action, f"{first} {last} | {email or '—'} | {phone or '—'} | playing={playing}"))
+                continue
+
+            if not candidate:
+                p = Player(first_name=first or "", last_name=last or "", email=email or "", phone=phone or "", playing=playing)
+                p.save()
+                created += 1
+                results.append((rownum, "created", f"id={p.id} {p.first_name} {p.last_name}"))
+            else:
+                changed = []
+                if first and candidate.first_name != first:
+                    candidate.first_name = first; changed.append("first")
+                if last and candidate.last_name != last:
+                    candidate.last_name = last; changed.append("last")
+                if email and candidate.email != email:
+                    candidate.email = email; changed.append("email")
+                if phone and candidate.phone != phone:
+                    candidate.phone = phone; changed.append("phone")
+                if candidate.playing != playing:
+                    candidate.playing = playing; changed.append("playing")
+
+                if changed:
+                    candidate.save()
+                    updated += 1
+                    results.append((rownum, "updated", ",".join(changed)))
+                else:
+                    skipped += 1
+                    results.append((rownum, "noop", ""))
+
+        if dry_run:
+            messages.info(request, f"Dry run: would create {sum(1 for r in results if r[1]=='would_create')} and update {sum(1 for r in results if r[1]=='would_update')}.")
+        else:
+            messages.success(request, f"Import done: created {created}, updated {updated}, skipped {skipped}.")
+
+    return render(request, "outing/player_bulk_import.html", {
+        "results": results,
+    })
