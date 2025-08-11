@@ -493,6 +493,10 @@ def sms_broadcast_view(request):
         if res["errors"]:
             sample = ", ".join(e[0] for e in res["errors"][:5])
             messages.error(request, f"Carrier/API errors for {len(res['errors'])} recipient(s). Example(s): {sample}")
+        
+        # Always show skipped counts (even if zero)
+        messages.info(request, f"Skipped (no phone): {len(missing)}" + (f" — {', '.join(missing[:10])}" if missing else ""))
+        messages.warning(request, f"Skipped (invalid phone): {len(invalid)}" + (f" — {', '.join(invalid[:10])}" if invalid else ""))
 
         return redirect("sms_broadcast")
 
