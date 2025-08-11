@@ -4,7 +4,7 @@ from django.utils.timezone import now
 from django.utils import timezone
 
 from typing import Dict, List, Optional
-from collections import Counter
+from collections import Counter, defaultdict
 
 from django.contrib import messages
 from django.contrib.auth import login
@@ -391,53 +391,109 @@ def team_manage_view(request):
 
 def _is_staff(u): return u.is_staff
 
-@user_passes_test(_is_staff)
+def _collect_recipients_from_players(qs):
+    """
+    Per-player normalization so we can report who’s missing/invalid.
+    Returns (send_to_numbers, missing_names, invalid_names).
+    """
+    send_to = []
+    missing = []
+    invalid = []
+    seen = set()
+
+    def label(p):
+        full = f"{(p.first_name or '').strip()} {(p.last_name or '').strip()}".strip()
+        return full or (p.email or f"Player#{p.id}")
+
+    for p in qs:
+        raw = (p.phone or "").strip()
+        if not raw:
+            missing.append(label(p))
+            continue
+        norm = prepare_recipients([raw])  # → [] if invalid, [E164] if valid
+        if not norm:
+            invalid.append(f"{label(p)} ({raw})")
+            continue
+        n = norm[0]
+        if n not in seen:
+            seen.add(n)
+            send_to.append(n)
+
+    return send_to, missing, invalid
+
+@staff_member_required
 def sms_broadcast_view(request):
-    """Staff page to send an SMS to all 'playing' players or a single team."""
     teams = Team.objects.order_by("name")
 
     if request.method == "POST":
-        audience    = request.POST.get("audience", "all")
+        audience    = request.POST.get("audience", "all")   # "all" | "team" | "test"
         team_id     = request.POST.get("team_id")
-        message     = (request.POST.get("message") or "").strip()
         test_number = (request.POST.get("test_number") or "").strip()
-        dry_run     = bool(request.POST.get("dry_run"))
+        body        = (request.POST.get("message") or "").strip()
         add_stop    = bool(request.POST.get("add_stop"))
+        dry_run     = bool(request.POST.get("dry_run"))
 
-        if not message:
+        if not body:
             messages.error(request, "Message is required.")
             return redirect("sms_broadcast")
 
         if add_stop:
-            message = f"{message}\n\nReply STOP to opt out."
+            body = body.rstrip() + " Reply STOP to opt out."
 
-        # Build recipients
-        phones_qs = []
-        if audience == "all":
-            phones_qs = Player.objects.filter(playing=True).values_list("phone", flat=True)
+        if audience == "test":
+            recipients = prepare_recipients([test_number])
+            if not recipients:
+                messages.error(request, "Enter a valid test number (e.g. +13125551212).")
+                return redirect("sms_broadcast")
+            body = "[TEST] " + body
+            missing = invalid = []
         elif audience == "team":
+            if not team_id:
+                messages.error(request, "Choose a team.")
+                return redirect("sms_broadcast")
             team = get_object_or_404(Team, pk=team_id)
-            phones_qs = team.players.filter(playing=True).values_list("phone", flat=True)
-        elif audience == "test" and test_number:
-            phones_qs = [test_number]
+            # only players who are marked as playing
+            qs = (Player.objects
+                  .filter(teams=team, playing=True)
+                  .only("id", "first_name", "last_name", "email", "phone"))
+            recipients, missing, invalid = _collect_recipients_from_players(qs)
+            if not recipients:
+                messages.error(request, f"No valid mobile numbers for team {team.name}.")
+                return redirect("sms_broadcast")
         else:
-            messages.error(request, "Select an audience or provide a test number.")
-            return redirect("sms_broadcast")
-
-        recipients = prepare_recipients(phones_qs)
-        if not recipients:
-            messages.error(request, "No valid phone numbers found.")
-            return redirect("sms_broadcast")
+            # audience == "all" → ONLY players marked as playing
+            qs = (Player.objects
+                  .filter(playing=True)
+                  .only("id", "first_name", "last_name", "email", "phone"))
+            recipients, missing, invalid = _collect_recipients_from_players(qs)
+            if not recipients:
+                messages.error(request, "No valid mobile numbers for playing participants.")
+                return redirect("sms_broadcast")
 
         if not have_twilio_creds():
-            messages.error(request, "Missing TWILIO settings in environment.")
+            messages.error(request, "Twilio is not configured on this environment.")
             return redirect("sms_broadcast")
 
-        result = broadcast(recipients, message, dry_run=dry_run)
-        if result["errors"]:
-            messages.warning(request, f"Sent {result['sent']} message(s); {len(result['errors'])} error(s).")
-        else:
-            messages.success(request, f"{'Would send' if dry_run else 'Sent'} {result['sent']} message(s).")
+        res = broadcast(recipients, body, dry_run=dry_run)
+        verb = "Would send to" if dry_run else "Sent to"
+        messages.success(request, f"{verb} {len(res['sent'])} number(s).")
+
+        # Summaries for skipped folks
+        def _preview(names, maxn=10):
+            if not names: return ""
+            names = list(names)
+            head = ", ".join(names[:maxn])
+            return head + (f", +{len(names)-maxn} more" if len(names) > maxn else "")
+
+        if missing:
+            messages.info(request, f"Skipped (no phone): {len(missing)} — {_preview(missing)}")
+        if invalid:
+            messages.warning(request, f"Skipped (invalid phone): {len(invalid)} — {_preview(invalid)}")
+
+        if res["errors"]:
+            sample = ", ".join(e[0] for e in res["errors"][:5])
+            messages.error(request, f"Carrier/API errors for {len(res['errors'])} recipient(s). Example(s): {sample}")
+
         return redirect("sms_broadcast")
 
     # GET
