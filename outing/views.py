@@ -446,25 +446,31 @@ def sms_broadcast_view(request):
                 messages.error(request, "Enter a valid test number (e.g. +13125551212).")
                 return redirect("sms_broadcast")
             body = "[TEST] " + body
-            missing = invalid = []
+            missing = []
+            invalid = []
+
         elif audience == "team":
             if not team_id:
                 messages.error(request, "Choose a team.")
                 return redirect("sms_broadcast")
             team = get_object_or_404(Team, pk=team_id)
-            # only players who are marked as playing
-            qs = (Player.objects
-                  .filter(teams=team, playing=True)
-                  .only("id", "first_name", "last_name", "email", "phone"))
+            qs = (
+                Player.objects
+                .filter(teams=team, playing=True)
+                .only("id", "first_name", "last_name", "email", "phone")
+            )
             recipients, missing, invalid = _collect_recipients_from_players(qs)
             if not recipients:
                 messages.error(request, f"No valid mobile numbers for team {team.name}.")
                 return redirect("sms_broadcast")
+
         else:
             # audience == "all" → ONLY players marked as playing
-            qs = (Player.objects
-                  .filter(playing=True)
-                  .only("id", "first_name", "last_name", "email", "phone"))
+            qs = (
+                Player.objects
+                .filter(playing=True)
+                .only("id", "first_name", "last_name", "email", "phone")
+            )
             recipients, missing, invalid = _collect_recipients_from_players(qs)
             if not recipients:
                 messages.error(request, "No valid mobile numbers for playing participants.")
@@ -478,25 +484,23 @@ def sms_broadcast_view(request):
         verb = "Would send to" if dry_run else "Sent to"
         messages.success(request, f"{verb} {len(res['sent'])} number(s).")
 
-        # Summaries for skipped folks
-        def _preview(names, maxn=10):
-            if not names: return ""
-            names = list(names)
-            head = ", ".join(names[:maxn])
-            return head + (f", +{len(names)-maxn} more" if len(names) > maxn else "")
-
+        # Summaries for skipped folks (always show)
         if missing:
-            messages.info(request, f"Skipped (no phone): {len(missing)} — {_preview(missing)}")
-        if invalid:
-            messages.warning(request, f"Skipped (invalid phone): {len(invalid)} — {_preview(invalid)}")
+            preview = ", ".join(missing[:10]) + (f", +{len(missing)-10} more" if len(missing) > 10 else "")
+            messages.info(request, f"Skipped (no phone): {len(missing)} — {preview}")
+        else:
+            messages.info(request, "Skipped (no phone): 0")
 
+        if invalid:
+            preview = ", ".join(invalid[:10]) + (f", +{len(invalid)-10} more" if len(invalid) > 10 else "")
+            messages.warning(request, f"Skipped (invalid phone): {len(invalid)} — {preview}")
+        else:
+            messages.info(request, "Skipped (invalid phone): 0")
+
+        # Preserve carrier/API error reporting
         if res["errors"]:
             sample = ", ".join(e[0] for e in res["errors"][:5])
             messages.error(request, f"Carrier/API errors for {len(res['errors'])} recipient(s). Example(s): {sample}")
-        
-        # Always show skipped counts (even if zero)
-        messages.info(request, f"Skipped (no phone): {len(missing)}" + (f" — {', '.join(missing[:10])}" if missing else ""))
-        messages.warning(request, f"Skipped (invalid phone): {len(invalid)}" + (f" — {', '.join(invalid[:10])}" if invalid else ""))
 
         return redirect("sms_broadcast")
 
