@@ -389,8 +389,6 @@ def team_manage_view(request):
     })
 
 
-def _is_staff(u): return u.is_staff
-
 def _collect_recipients_from_players(qs):
     """
     Per-player normalization so we can report who’s missing/invalid.
@@ -626,76 +624,6 @@ def twilio_inbound_view(request):
 def _twiml(message: str) -> HttpResponse:
     xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{message}</Message></Response>'
     return HttpResponse(xml, content_type="application/xml")
-
-
-@staff_member_required
-def sms_broadcast_view(request):
-    teams = Team.objects.order_by("name")
-
-    if request.method == "POST":
-        audience    = request.POST.get("audience", "all")   # "all" | "team" | "test"
-        team_id     = request.POST.get("team_id")
-        test_number = (request.POST.get("test_number") or "").strip()
-        body        = (request.POST.get("message") or "").strip()
-        add_stop    = bool(request.POST.get("add_stop"))
-        dry_run     = bool(request.POST.get("dry_run"))
-
-        if not body:
-            messages.error(request, "Message is required.")
-            return redirect("sms_broadcast")
-
-        if add_stop:
-            body = body.rstrip() + " Reply STOP to opt out."
-
-        # Build recipient list based on audience
-        recipients = []
-        if audience == "test":
-            recipients = prepare_recipients([test_number])
-            if not recipients:
-                messages.error(request, "Enter a valid test number (e.g. +13125551212).")
-                return redirect("sms_broadcast")
-            # Make it obvious this is a test
-            body = "[TEST] " + body
-
-        elif audience == "team":
-            if not team_id:
-                messages.error(request, "Choose a team.")
-                return redirect("sms_broadcast")
-            team = get_object_or_404(Team, pk=team_id)
-            qs = (Player.objects
-                  .filter(teams=team, playing=True)
-                  .exclude(phone__isnull=True).exclude(phone__exact=""))
-            recipients = prepare_recipients([p.phone for p in qs])
-            if not recipients:
-                messages.error(request, f"No valid phone numbers for team {team.name}.")
-                return redirect("sms_broadcast")
-
-        else:  # "all"
-            qs = (Player.objects
-                  .filter(playing=True)
-                  .exclude(phone__isnull=True).exclude(phone__exact=""))
-            recipients = prepare_recipients([p.phone for p in qs])
-            if not recipients:
-                messages.error(request, "No valid phone numbers for playing participants.")
-                return redirect("sms_broadcast")
-
-        if not have_twilio_creds():
-            messages.error(request, "Twilio is not configured on this environment.")
-            return redirect("sms_broadcast")
-
-        # Send (or dry-run)
-        res = broadcast(recipients, body, dry_run=dry_run)
-        verb = "Would send to" if dry_run else "Sent to"
-        messages.success(request, f"{verb} {len(res['sent'])} number(s).")
-
-        if res["errors"]:
-            sample = ", ".join(e[0] for e in res["errors"][:5])
-            messages.error(request, f"Errors for {len(res['errors'])} recipient(s). Example(s): {sample}")
-
-        return redirect("sms_broadcast")
-
-    # GET
-    return render(request, "outing/sms_broadcast.html", {"teams": teams})
 
 
 @staff_member_required
