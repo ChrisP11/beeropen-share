@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Tools</h2>
+
+<div class="list-group my-3">
+  <a class="list-group-item list-group-item-action" href="{% url 'sms_broadcast' %}">
+    SMS Broadcast
+    <small class="text-muted d-block">Send a message to all playing participants or a single team.</small>
+  </a>
+  <a class="list-group-item list-group-item-action" href="{% url 'sms_replies' %}">
+    SMS Inbox
+    <small class="text-muted d-block">View incoming texts (e.g., shirt sizes) and who sent them.</small>
+  </a>
+  <a class="list-group-item list-group-item-action" href="{% url 'player_sizes' %}">
+    Shirt Sizes
+    <small class="text-muted d-block">Browse all players with their current shirt size.</small>
+  </a>
+  <a class="list-group-item list-group-item-action" href="{% url 'player_bulk_import' %}">
+    Bulk Import Players
+    <small class="text-muted d-block">Upload/paste CSV to create/update players and “playing” flags.</small>
+  </a>
+  <a class="list-group-item list-group-item-action" href="{% url 'team_manage' %}">
+    Team Manager
+    <small class="text-muted d-block">Set tee times, add/remove players from teams.</small>
+  </a>
+  <a class="list-group-item list-group-item-action" href="/admin/">
+    Django Admin
+    <small class="text-muted d-block">Full Django admin site.</small>
+  </a>
+</div>
+{% endblock %}

@@ -31,6 +31,11 @@ def home_view(request):
     return render(request, "outing/home.html", {"event_date": evt_date})
 
 
+@staff_member_required
+def admin_hub_view(request):
+    return render(request, "outing/admin_hub.html")
+
+
 @login_required
 def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
     team = get_object_or_404(Team, pk=team_id)

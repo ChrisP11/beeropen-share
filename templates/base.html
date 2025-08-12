@@ -1,23 +1,26 @@
 <!doctype html>
 
-<nav class="navbar navbar-expand bg-light border-bottom mb-3">
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
   <div class="container">
     <a class="navbar-brand" href="{% url 'home' %}">Home</a>
-    <ul class="navbar-nav ms-auto">
+
+    <div class="ms-auto d-flex align-items-center gap-3">
       {% if request.user.is_authenticated %}
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'dashboard' %}">
-            {{ request.user.get_full_name|default:request.user.username }}
-          </a>
-        </li>
+        {% if request.user.is_staff %}
+          <a class="nav-link" href="{% url 'admin_hub' %}">Admin</a>
+        {% endif %}
+        <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+        <span class="navbar-text">Hi, {{ request.user.first_name|default:request.user.username }}</span>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'logout' %}?next={% url 'home' %}">Log out</a>
       {% else %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Log in</a></li>
+        <a class="btn btn-sm btn-primary" href="{% url 'login' %}">Log in</a>
       {% endif %}
-    </ul>
+    </div>
   </div>
 </nav>
 
-<html>
+
+<!-- <html>
   {% if request.user.is_authenticated %}
     <span class="me-2">Hi, {{ request.user.first_name|default:request.user.username }}</span>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'logout' %}">Log out</a>
@@ -35,7 +38,7 @@
   <br>
   {# if your inbox route is named 'sms_replies', show it too #}
   <a class="btn btn-sm btn-outline-secondary" href="{% url 'sms_replies' %}">SMS Inbox</a>
-{% endif %}
+{% endif %} -->
 
   <head><title>Beer Open</title></head>
   <body>
