@@ -6,8 +6,9 @@ def root_redirect(request):
     return redirect("dashboard") if request.user.is_authenticated else redirect("login")
 
 urlpatterns = [
-    # Public root -> redirect to login or dashboard
-    path("", root_redirect, name="home"),
+
+    # Public landing page
+    path("", views.home_view, name="home"),
 
     # App pages
     path("app/", views.dashboard_view, name="dashboard"),

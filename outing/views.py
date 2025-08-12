@@ -25,7 +25,12 @@ def current_event_date():
     return EventSettings.load().event_date
 
 
-# REPLACE your team_scorecard_view with this version (same body + finalize logic)
+# public landing page
+def home_view(request):
+    evt_date = EventSettings.load().event_date  # dynamic date
+    return render(request, "outing/home.html", {"event_date": evt_date})
+
+
 @login_required
 def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
     team = get_object_or_404(Team, pk=team_id)
