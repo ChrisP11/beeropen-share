@@ -1,0 +1,76 @@
+/* Fonts & palette */
+:root{
+  --pine:#1B4332;
+  --green:#2D6A4F;
+  --mint:#95D5B2;
+  --haze:#D8F3DC;
+  --paper:#F6FFF8;
+  --ink:#0F241B;
+}
+
+body{
+  font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  color:var(--ink);
+  background:var(--paper);
+}
+
+/* Headings use Montserrat for a sporty feel */
+h1,h2,h3,.navbar-brand{
+  font-family:"Montserrat", system-ui, sans-serif;
+}
+
+/* Navbar */
+.navbar.bg-paper{
+  background:var(--paper) !important;
+}
+.text-pine{ color:var(--pine) !important; }
+.text-green-emphasis{ color:var(--green) !important; }
+
+/* Buttons */
+.btn-pine{
+  --bs-btn-color:#fff;
+  --bs-btn-bg:var(--pine);
+  --bs-btn-border-color:var(--pine);
+  --bs-btn-hover-bg:#163829;
+  --bs-btn-hover-border-color:#163829;
+  --bs-btn-focus-shadow-rgb:27,67,50;
+}
+.btn-outline-pine{
+  --bs-btn-color:var(--pine);
+  --bs-btn-border-color:var(--pine);
+  --bs-btn-hover-color:#fff;
+  --bs-btn-hover-bg:var(--pine);
+  --bs-btn-hover-border-color:var(--pine);
+}
+
+/* Topography hero */
+.hero-topo{
+  position: relative;
+  background: linear-gradient(180deg, rgba(216,243,220,.6), rgba(246,255,248,0));
+  overflow: hidden;
+}
+.hero-topo::before{
+  /* subtle topo lines via inline SVG */
+  content:"";
+  position:absolute; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M0 80 Q 40 60 80 80 T 160 80' fill='none' stroke='%2395D5B2' stroke-width='1' opacity='0.35'/%3E%3Cpath d='M0 40 Q 40 20 80 40 T 160 40' fill='none' stroke='%2395D5B2' stroke-width='1' opacity='0.25'/%3E%3Cpath d='M0 120 Q 40 100 80 120 T 160 120' fill='none' stroke='%2395D5B2' stroke-width='1' opacity='0.25'/%3E%3C/svg%3E");
+  background-size: 320px 320px;
+  background-repeat: repeat;
+  opacity:.7;
+  transform: rotate(-2deg) scale(1.05);
+  pointer-events:none;
+}
+
+/* Event tile */
+.event-tile{
+  border:1px solid rgba(0,0,0,.06);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.event-tile:hover{
+  transform: translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+.container .display-4{
+  letter-spacing:.3px;
+}

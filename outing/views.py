@@ -31,6 +31,11 @@ def home_view(request):
     return render(request, "outing/home.html", {"event_date": evt_date})
 
 
+# testing home page for different looks
+def home_public(request):
+    return render(request, "outing/home_public.html")
+
+
 @staff_member_required
 def admin_hub_view(request):
     return render(request, "outing/admin_hub.html")

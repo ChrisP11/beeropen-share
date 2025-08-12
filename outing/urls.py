@@ -8,7 +8,8 @@ def root_redirect(request):
 urlpatterns = [
 
     # Public landing page
-    path("", views.home_view, name="home"),
+    # path("", views.home_view, name="home"),
+    path("", views.home_public, name="home_public"),   
 
     # staff hub
     path("admin/tools/", views.admin_hub_view, name="admin_hub"),
