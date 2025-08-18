@@ -369,6 +369,23 @@ def team_manage_view(request):
         team_id = request.POST.get("team_id")
         team = get_object_or_404(Team, pk=team_id) if team_id else None
 
+        if action == "create_team":
+            name = (request.POST.get("name") or "").strip()
+            tee = (request.POST.get("tee_time") or "").strip()
+            if not name:
+                messages.error(request, "Team name is required.")
+                return redirect("team_manage")
+            t = Team(name=name)
+            if tee:
+                try:
+                    hh, mm = [int(x) for x in tee.split(":")]
+                    t.tee_time = time(hh, mm)
+                except Exception:
+                    messages.warning(request, f"Team created, but tee time '{tee}' was invalid. Use HH:MM.")
+            t.save()
+            messages.success(request, f"Team '{t.name}' created.")
+            return redirect("team_manage")
+        
         if action == "set_tee":
             ts = (request.POST.get("tee_time") or "").strip()
             if ts:

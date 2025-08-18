@@ -29,6 +29,25 @@
     </div>
   </div>
 
+  <div class="card mb-4">
+  <div class="card-header"><strong>Create Team</strong></div>
+  <div class="card-body">
+    <form method="post" class="row g-2 align-items-center">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_team">
+      <div class="col-sm-6">
+        <input type="text" name="name" class="form-control" placeholder="Team name (e.g., ‘Team A’)" required>
+      </div>
+      <div class="col-sm-3">
+        <input type="time" name="tee_time" class="form-control" placeholder="HH:MM">
+      </div>
+      <div class="col-sm-3">
+        <button class="btn btn-primary">Add Team</button>
+      </div>
+    </form>
+  </div>
+</div>
+
   <div class="col-lg-8">
     {% for t in teams %}
       <div class="card mb-3">
