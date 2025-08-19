@@ -91,7 +91,17 @@ if os.getenv("DATABASE_URL"):
         conn_max_age=600, ssl_require=True
     )
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": MEDIA_ROOT,   # where uploads are saved
+            "base_url": MEDIA_URL,
+        },
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
     }
@@ -166,6 +176,3 @@ MAGIC_BASE_URL = os.getenv("MAGIC_BASE_URL", "")
 LOGIN_REDIRECT_URL = "dashboard"   # or "/app/"
 LOGOUT_REDIRECT_URL = "home"       # sends to "/", which redirects to login or dashboard
 
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
