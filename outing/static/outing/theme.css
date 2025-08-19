@@ -74,3 +74,17 @@ h1,h2,h3,.navbar-brand{
 .container .display-4{
   letter-spacing:.3px;
 }
+
+
+/* Square logo tile: no cropping, centered, padded */
+.logo-tile {
+  border-radius: 8px;
+  background: #f7f6f2;      /* subtle paper background */
+  padding: 12px;
+}
+
+/* Make the image fill the square, but keep all of it visible */
+.logo-tile img {
+  object-fit: contain;       /* <-- key change (was cover) */
+  display: block;
+}
