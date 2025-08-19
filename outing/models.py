@@ -143,9 +143,12 @@ class ArchiveEvent(models.Model):
     date = models.DateField(null=True, blank=True)
     location = models.CharField(max_length=200, blank=True)
 
-    # Assets (upload to media/)
-    logo = models.ImageField(upload_to="archive/%Y/logo/", blank=True)
-    plaque = models.ImageField(upload_to="archive/%Y/plaque/", blank=True)
+    # Assets (now: relative STATIC paths instead of uploads)
+    # e.g. "outing/archive/2024/BeerOpen2024.png"
+    logo   = models.CharField(max_length=255, blank=True,
+                              help_text="Relative static path, e.g. outing/archive/2024/BeerOpen2024.png")
+    plaque = models.CharField(max_length=255, blank=True,
+                              help_text="Relative static path, e.g. outing/archive/2024/plaque.jpg")
 
     # Content (Markdown preferred)
     writeup_md = models.TextField(blank=True)
@@ -166,7 +169,12 @@ class ArchiveEvent(models.Model):
 
 class ArchiveImage(models.Model):
     event = models.ForeignKey(ArchiveEvent, on_delete=models.CASCADE, related_name="gallery")
-    image = models.ImageField(upload_to="archive/%Y/gallery/")
+
+    # Keep the same field name `image`, but store a relative STATIC path
+    # e.g. "outing/archive/2024/gallery/01.jpg"
+    image = models.CharField(max_length=255,
+                             help_text="Relative static path, e.g. outing/archive/2024/gallery/01.jpg")
+
     caption = models.CharField(max_length=200, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 

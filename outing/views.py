@@ -839,7 +839,6 @@ def archive_event_view(request, year: int, event_type: str):
           .prefetch_related("gallery")
           .first())
     if ev:
-        from django.utils.safestring import mark_safe
         def render_md(md_text):
             try:
                 import markdown as md
@@ -852,8 +851,8 @@ def archive_event_view(request, year: int, event_type: str):
             "event_type": event_type,
             "date": ev.date,
             "location": ev.location,
-            "logo_url": ev.logo.url if ev.logo else None,
-            "plaque_url": ev.plaque.url if ev.plaque else None,
+            "logo_url": (static(ev.logo) if ev.logo else None),
+            "plaque_url": (static(ev.plaque) if ev.plaque else None),
             "writeup_html": render_md(ev.writeup_md),
             "odds_html": render_md(ev.odds_md),
             "gallery": ev.gallery.all(),

@@ -21,7 +21,7 @@
             <figure class="text-center m-0" style="max-width: 260px; width: 100%;">
               <a href="{% url 'archive_event' ev.year ev.kind %}" class="logo-tile ratio ratio-1x1 d-block shadow-sm">
                 {% if ev.logo %}
-                  <img src="{{ ev.logo.url }}" alt="{{ ev.year }} {{ ev.kind }} logo" class="w-100 h-100" style="object-fit: contain;">
+                  <img src="{{ static ev.logo }}" alt="{{ ev.year }} {{ ev.kind }} logo" class="w-100 h-100" style="object-fit: contain;">
                 {% else %}
                   <div class="d-flex align-items-center justify-content-center h-100 text-muted">No Logo</div>
                 {% endif %}
@@ -31,8 +31,7 @@
           </div>
         {% endfor %}
       {% else %}
-        <!-- Optional: keep your single 2024 card as a fallback -->
-        <!-- existing static tile for 2024 -->
+        
       {% endif %}
     {% endwith %}
   </div>

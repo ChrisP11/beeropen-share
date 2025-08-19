@@ -4,6 +4,8 @@ from django.utils.text import slugify
 from django.contrib.auth.forms import PasswordResetForm
 from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
+from django.utils.safestring import mark_safe
+from django.templatetags.static import static
 
 from .models import Player, Team, Round, Score, DriveUsed, CoursePar, EventSettings, SMSResponse, ArchiveEvent, ArchiveImage
 
@@ -197,11 +199,39 @@ class SMSResponseAdmin(admin.ModelAdmin):
 
 class ArchiveImageInline(admin.TabularInline):
     model = ArchiveImage
+    fields = ("image", "caption", "sort_order", "preview")
     extra = 1
+    readonly_fields = ("preview",)
+
+    def preview(self, obj):
+        if obj.image:
+            return mark_safe(f'<img src="{static(obj.image)}" style="height:60px;border:1px solid #ddd;">')
+        return ""
 
 @admin.register(ArchiveEvent)
 class ArchiveEventAdmin(admin.ModelAdmin):
-    list_display = ("year", "kind", "location", "date", "published")
+    list_display = ("year", "kind", "location", "published")
     list_filter  = ("kind", "published")
     search_fields = ("location",)
+
+    fieldsets = (
+        (None, {"fields": ("year", "kind", "date", "location", "published")}),
+        ("Assets (static paths)", {
+            "fields": ("logo", "plaque", "logo_preview", "plaque_preview"),
+            "description": "Store relative static paths committed in the repo, e.g. 'outing/archive/2024/BeerOpen2024.png'."
+        }),
+        ("Content", {"fields": ("writeup_md", "odds_md")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+    readonly_fields = ("logo_preview", "plaque_preview", "created_at", "updated_at")
     inlines = [ArchiveImageInline]
+
+    def logo_preview(self, obj):
+        if obj.logo:
+            return mark_safe(f'<img src="{static(obj.logo)}" style="height:70px;border:1px solid #ddd;">')
+        return ""
+
+    def plaque_preview(self, obj):
+        if obj.plaque:
+            return mark_safe(f'<img src="{static(obj.plaque)}" style="height:70px;border:1px solid #ddd;">')
+        return ""
