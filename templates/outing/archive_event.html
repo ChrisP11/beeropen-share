@@ -4,35 +4,58 @@
 {% block content %}
 <div class="container my-4 archive-copy">
   <h1 class="mb-1">Beer Open {{ year }}</h1>
-  <p class="text-muted mb-3">{{ location }}{% if date %} — {{ date|date:"j F Y" }}{% endif %}</p>
+  <p class="text-muted mb-3">
+    {{ location }}{% if date %} — {{ date|date:"j F Y" }}{% endif %}
+  </p>
 
+  {# --- Plaque image --- #}
   {% if plaque_url %}
     <img src="{{ plaque_url }}" class="img-fluid mb-3 rounded" alt="Trophy plaque">
+  {% elif plaque %}
+    <img src="{% static plaque %}" class="img-fluid mb-3 rounded" alt="Trophy plaque">
   {% endif %}
 
+  {# --- Logo image --- #}
   {% if logo_url %}
     <img src="{{ logo_url }}" class="img-fluid mb-4 rounded" alt="Event logo">
+  {% elif logo %}
+    <img src="{% static logo %}" class="img-fluid mb-4 rounded" alt="Event logo">
   {% endif %}
 
+  {# --- Write-up --- #}
   {% if writeup_html %}
     <h3>Write-up</h3>
     <div class="mb-4">{{ writeup_html|safe }}</div>
   {% endif %}
 
+  {# --- Odds --- #}
   {% if odds_html %}
     <h3>The Odds</h3>
     <div class="mb-4">{{ odds_html|safe }}</div>
   {% endif %}
 
-  {% if gallery %}
+  {# --- Gallery (supports either pre-built gallery_imgs or queryset gallery) --- #}
+  {% if gallery_imgs or gallery %}
     <h3>Gallery</h3>
     <div class="row g-3">
-      {% for img in gallery %}
-        <div class="col-6 col-md-4 col-lg-3">
-          <img src="{{ img.image.url }}" class="img-fluid rounded" alt="{{ img.caption }}">
-          {% if img.caption %}<div class="small text-muted mt-1">{{ img.caption }}</div>{% endif %}
-        </div>
-      {% endfor %}
+      {% if gallery_imgs %}
+        {% for g in gallery_imgs %}
+          <div class="col-6 col-md-4 col-lg-3">
+            <img src="{{ g.url }}" class="img-fluid rounded" alt="{{ g.caption }}">
+            {% if g.caption %}<div class="small text-muted mt-1">{{ g.caption }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        {% for img in gallery %}
+          <div class="col-6 col-md-4 col-lg-3">
+            {# If image is a static path (CharField) #}
+            {% if img.image %}
+              <img src="{% static img.image %}" class="img-fluid rounded" alt="{{ img.caption }}">
+            {% endif %}
+            {% if img.caption %}<div class="small text-muted mt-1">{{ img.caption }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
     </div>
   {% endif %}
 </div>
