@@ -827,7 +827,7 @@ def archive_event_view(request, year: int, event_type: str):
             "location": "The Preserve at Oak Meadows",
             # Place static files here later; leave None to show placeholders for now
             "trophy_img": None,                 # e.g. "outing/archive/2024/trophy.jpg"
-            "logo_img":   None,                 # e.g. "outing/archive/2024/logo.jpg"
+            "logo_img":   "outing/archive/2024/BeerOpen2024.png",                 # e.g. "outing/archive/2024/logo.jpg"
             "writeup": "Blah Blah",
             "odds_text": mark_safe(
                 """1150a - Sex in the Bathroom 
@@ -864,8 +864,7 @@ Odds  5-2
 Dave Willsey, Tom Canepa, Jim Scibek, Chris Prouty 
 A veteran BO group here.  50+ years at least and several trophies.  Willsey owns the Greatest Shot in BO history (it was amazing).  Teeing off last, they are in the cat bird seat and on the Organizer's home course.  Just another example of the deck being stacked against the field?  Finger's crossed, but.... feels like a first loser place finish.
 Odds 9-2
-
-(Placeholder for more pictures)"""
+"""
             ),
         },
     }
