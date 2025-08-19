@@ -826,8 +826,8 @@ def archive_event_view(request, year: int, event_type: str):
             "date": "14 September 2024",
             "location": "The Preserve at Oak Meadows",
             # Place static files here later; leave None to show placeholders for now
-            "trophy_img": "outing/archive/2024/2023_Darrenito_BO_Trophy_plaque",                 # e.g. "outing/archive/2024/trophy.jpg"
-            "logo_img":   "outing/archive/2024/BeerOpen2024.png",                 # e.g. "outing/archive/2024/logo.jpg"
+            "trophy_img": "outing/archive/2024/2023_Darrenito_BO_Trophy_plaque.pdf", # e.g. "outing/archive/2024/trophy.jpg"
+            "logo_img":   "outing/archive/2024/BeerOpen2024.png", # e.g. "outing/archive/2024/logo.jpg"
             "writeup": "Blah Blah",
             "odds_text": mark_safe(
                 """1150a - Sex in the Bathroom 

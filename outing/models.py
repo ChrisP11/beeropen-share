@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+from django.conf import settings
 from datetime import date
 
 
@@ -125,3 +127,51 @@ class SMSResponse(models.Model):  # NEW
     def __str__(self):
         who = self.player and f"{self.player.first_name} {self.player.last_name}" or self.from_number
         return f"{self.received_at:%Y-%m-%d %H:%M} {who}: {self.message_body[:40]}"
+
+
+# --- Past Events data ---
+class ArchiveEvent(models.Model):
+    KIND_CHOICES = [
+        ("open", "Open"),
+        ("ito", "Ito"),
+        ("local", "Local"),
+    ]
+    year = models.PositiveIntegerField()
+    kind = models.CharField(max_length=16, choices=KIND_CHOICES, default="open")
+
+    # Core info
+    date = models.DateField(null=True, blank=True)
+    location = models.CharField(max_length=200, blank=True)
+
+    # Assets (upload to media/)
+    logo = models.ImageField(upload_to="archive/%Y/logo/", blank=True)
+    plaque = models.ImageField(upload_to="archive/%Y/plaque/", blank=True)
+
+    # Content (Markdown preferred)
+    writeup_md = models.TextField(blank=True)
+    odds_md = models.TextField(blank=True)
+
+    # Publishing
+    published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("year", "kind")
+        ordering = ["-year", "kind"]
+
+    def __str__(self):
+        return f"{self.year} {self.get_kind_display()}"
+
+
+class ArchiveImage(models.Model):
+    event = models.ForeignKey(ArchiveEvent, on_delete=models.CASCADE, related_name="gallery")
+    image = models.ImageField(upload_to="archive/%Y/gallery/")
+    caption = models.CharField(max_length=200, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"Image for {self.event} ({self.id})"
