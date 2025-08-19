@@ -34,5 +34,6 @@ urlpatterns = [
 
     # Past-event pages, e.g. /archive/2024/open/
     path("archive/<int:year>/<str:event_type>/", views.archive_event_view, name="archive_event"),
+    
 
 ]
