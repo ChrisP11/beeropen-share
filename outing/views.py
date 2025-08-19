@@ -1,10 +1,9 @@
 import csv, io
+import bleach
 from datetime import date, time
-from django.utils.timezone import now
-from django.utils import timezone
-
 from typing import Dict, List, Optional
 from collections import Counter, defaultdict
+from markdown import markdown
 
 from django.contrib import messages
 from django.contrib.auth import login
@@ -14,10 +13,14 @@ from django.http import HttpResponseForbidden, HttpRequest, HttpResponse, Http40
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Sum, Case, When, IntegerField, Count, Q
 from django.utils.safestring import mark_safe
+from django.utils import timezone
+from django.utils.timezone import now
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.templatetags.static import static
 
-from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse
+from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse, ArchiveEvent
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
 from .magic_utils import create_magic_link, validate_token
 
@@ -34,7 +37,8 @@ def home_view(request):
 
 # testing home page for different looks
 def home_public(request):
-    return render(request, "outing/home_public.html")
+    events = ArchiveEvent.objects.filter(published=True).order_by("-year", "kind")
+    return render(request, "outing/home_public.html", {"events": events})
 
 
 @staff_member_required
@@ -806,31 +810,57 @@ def player_bulk_import_view(request):
         "results": results,
     })
 
+# allow basic formatting + headings + underline
+_bleach_cleaner = bleach.Cleaner(
+    tags=[
+        "p", "br", "strong", "em", "u", "ul", "ol", "li",
+        "h3", "h4", "h5", "blockquote", "a", "hr", "code"
+    ],
+    attributes={"a": ["href", "title", "rel"]},
+    protocols=["http", "https", "mailto"],
+    strip=True,
+)
 
+def render_md(md_text: str) -> str:
+    html = markdown(md_text or "", extensions=["extra", "sane_lists"])
+    return mark_safe(_bleach_cleaner.clean(html))
 
 
 
 #### Past Events Data
-def archive_event_view(request, year: int, event_type: str):
-    """Generic past-event page (year + type)."""
-
-    # Normalize/guard the type
-    event_type = (event_type or "").lower()
-    if event_type not in {"open", "ito", "local"}:
+def archive_event_view(request, year: int, kind: str):
+    kind = (kind or "").lower()
+    if kind not in {"open", "ito", "local"}:
         raise Http404("Unknown event type")
 
-    # --- Event content dictionary (add more years over time) ---
-    EVENTS = {
+    ev = (ArchiveEvent.objects
+          .filter(year=year, kind=kind)
+          .prefetch_related("gallery")
+          .first())
+    if ev:
+        ctx = {
+            "year": ev.year,
+            "kind": ev.kind,
+            "date": ev.date,
+            "location": ev.location,
+            "logo_url": (ev.logo.url if ev.logo else None),
+            "plaque_url": (ev.plaque.url if ev.plaque else None),
+            "writeup_html": render_md(ev.writeup_md),
+            "odds_html": render_md(ev.odds_md),
+            "gallery": ev.gallery.all(),
+        }
+        return render(request, "outing/archive_event.html", ctx)
+
+    FALLBACK = {
         (2024, "open"): {
-            "title": "Beer Open 2024",
+            "year": 2024,
+            "kind": "open",
             "date": "14 September 2024",
             "location": "The Preserve at Oak Meadows",
-            # Place static files here later; leave None to show placeholders for now
-            "trophy_img": "outing/archive/2024/2023_Darrenito_BO_Trophy_plaque.pdf", # e.g. "outing/archive/2024/trophy.jpg"
-            "logo_img":   "outing/archive/2024/BeerOpen2024.png", # e.g. "outing/archive/2024/logo.jpg"
-            "writeup": "Blah Blah",
-            "odds_text": mark_safe(
-                """1150a - Sex in the Bathroom 
+            "logo_url": static("outing/archive/2024/BeerOpen2024.png"),
+            "plaque_url": None,
+            "writeup_html": render_md("Blah Blah"),
+            "odds_html": render_md("""1150a - Sex in the Bathroom 
 Chris Marinelli, Mike Marinelli, Jay Gelfo-Klein, Brandon Billbey
 The no shirts no problem crew.  Listed odds for victory are generous.  The odds of one of them having sex in the bathroom on Saturday?  100%
 Odds 113-1
@@ -863,16 +893,14 @@ Odds  5-2
 1250p - Only Sacs That Matter
 Dave Willsey, Tom Canepa, Jim Scibek, Chris Prouty 
 A veteran BO group here.  50+ years at least and several trophies.  Willsey owns the Greatest Shot in BO history (it was amazing).  Teeing off last, they are in the cat bird seat and on the Organizer's home course.  Just another example of the deck being stacked against the field?  Finger's crossed, but.... feels like a first loser place finish.
-Odds 9-2
-"""
-            ),
+Odds 9-2"""),
+            "gallery": [],
         },
     }
-    # -------------------------------------------------------------
 
-    data = EVENTS.get((year, event_type))
-    if not data:
+    ctx = FALLBACK.get((year, kind))
+    if not ctx:
         raise Http404("Event not found (yet!)")
+    return render(request, "outing/archive_event.html", ctx)
 
-    data |= {"year": year, "event_type": event_type}
-    return render(request, "outing/archive_event.html", data)
+

@@ -33,8 +33,6 @@ urlpatterns = [
     path("leaderboard/partial/", views.leaderboard_partial, name="leaderboard_partial"),
 
     # Past-event pages, e.g. /archive/2024/open/
-    path("archive/<int:year>/<slug:event_type>/", 
-         views.archive_event_view, 
-         name="archive_event"),
+    path("archive/<int:year>/<slug:event_type>/", views.archive_event_view, name="archive_event"),
 
 ]

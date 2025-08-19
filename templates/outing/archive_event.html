@@ -1,46 +1,39 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block content %}
+<div class="container my-4 archive-copy">
+  <h1 class="mb-1">Beer Open {{ year }}</h1>
+  <p class="text-muted mb-3">{{ location }}{% if date %} — {{ date|date:"j F Y" }}{% endif %}</p>
 
-<div class="container py-4">
-  <h1 class="display-5 mb-1">{{ title }}</h1>
-  <div class="text-muted mb-4">{{ date }} • {{ location }}</div>
+  {% if plaque_url %}
+    <img src="{{ plaque_url }}" class="img-fluid mb-3 rounded" alt="Trophy plaque">
+  {% endif %}
 
-  <!-- Trophy plaque -->
-  <div class="mb-4">
-    {% if trophy_img %}
-      <img src="{% static trophy_img %}" alt="Trophy Plaque {{ year }}" class="img-fluid rounded shadow-sm">
-    {% else %}
-      <div class="p-5 bg-light rounded text-center text-muted border">
-        Trophy plaque photo coming soon
-      </div>
-    {% endif %}
-  </div>
+  {% if logo_url %}
+    <img src="{{ logo_url }}" class="img-fluid mb-4 rounded" alt="Event logo">
+  {% endif %}
 
-  <!-- Logo / Swag -->
-  <div class="mb-4">
-    {% if logo_img %}
-      <img src="{% static logo_img %}" alt="Event logo {{ year }}" class="img-fluid rounded shadow-sm">
-    {% else %}
-      <div class="p-5 bg-light rounded text-center text-muted border">
-        Event logo / swag photo coming soon
-      </div>
-    {% endif %}
-  </div>
+  {% if writeup_html %}
+    <h3>Write-up</h3>
+    <div class="mb-4">{{ writeup_html|safe }}</div>
+  {% endif %}
 
-  <!-- Write-up -->
-  <h3 class="mt-4">Write Up</h3>
-  <p>{{ writeup }}</p>
+  {% if odds_html %}
+    <h3>The Odds</h3>
+    <div class="mb-4">{{ odds_html|safe }}</div>
+  {% endif %}
 
-  <!-- The Odds -->
-  <h3 class="mt-4">The Odds</h3>
-  <pre class="p-3 bg-paper rounded border" style="white-space: pre-wrap;">{{ odds_text }}</pre>
-
-  <!-- Gallery placeholder -->
-  <h3 class="mt-4">More Pictures</h3>
-  <div class="p-5 bg-light rounded text-center text-muted border">
-    Gallery coming soon
-  </div>
+  {% if gallery %}
+    <h3>Gallery</h3>
+    <div class="row g-3">
+      {% for img in gallery %}
+        <div class="col-6 col-md-4 col-lg-3">
+          <img src="{{ img.image.url }}" class="img-fluid rounded" alt="{{ img.caption }}">
+          {% if img.caption %}<div class="small text-muted mt-1">{{ img.caption }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 </div>
-
 {% endblock %}

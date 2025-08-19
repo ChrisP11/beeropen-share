@@ -5,7 +5,7 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
 
-from .models import Player, Team, Round, Score, DriveUsed, CoursePar, EventSettings, SMSResponse
+from .models import Player, Team, Round, Score, DriveUsed, CoursePar, EventSettings, SMSResponse, ArchiveEvent, ArchiveImage
 
 from .magic_utils import create_magic_link
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
@@ -193,3 +193,15 @@ class SMSResponseAdmin(admin.ModelAdmin):
     list_display = ("received_at", "from_number", "player", "campaign", "message_body")
     list_filter  = ("campaign", "received_at")
     search_fields = ("from_number", "message_body", "player__first_name", "player__last_name")
+
+
+class ArchiveImageInline(admin.TabularInline):
+    model = ArchiveImage
+    extra = 1
+
+@admin.register(ArchiveEvent)
+class ArchiveEventAdmin(admin.ModelAdmin):
+    list_display = ("year", "kind", "location", "date", "published")
+    list_filter  = ("kind", "published")
+    search_fields = ("location",)
+    inlines = [ArchiveImageInline]
