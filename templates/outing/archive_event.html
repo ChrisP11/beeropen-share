@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container py-4">
+  <h1 class="display-5 mb-1">{{ title }}</h1>
+  <div class="text-muted mb-4">{{ date }} • {{ location }}</div>
+
+  <!-- Trophy plaque -->
+  <div class="mb-4">
+    {% if trophy_img %}
+      <img src="{% static trophy_img %}" alt="Trophy Plaque {{ year }}" class="img-fluid rounded shadow-sm">
+    {% else %}
+      <div class="p-5 bg-light rounded text-center text-muted border">
+        Trophy plaque photo coming soon
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Logo / Swag -->
+  <div class="mb-4">
+    {% if logo_img %}
+      <img src="{% static logo_img %}" alt="Event logo {{ year }}" class="img-fluid rounded shadow-sm">
+    {% else %}
+      <div class="p-5 bg-light rounded text-center text-muted border">
+        Event logo / swag photo coming soon
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Write-up -->
+  <h3 class="mt-4">Write Up</h3>
+  <p>{{ writeup }}</p>
+
+  <!-- The Odds -->
+  <h3 class="mt-4">The Odds</h3>
+  <pre class="p-3 bg-paper rounded border" style="white-space: pre-wrap;">{{ odds_text }}</pre>
+
+  <!-- Gallery placeholder -->
+  <h3 class="mt-4">More Pictures</h3>
+  <div class="p-5 bg-light rounded text-center text-muted border">
+    Gallery coming soon
+  </div>
+</div>
+
+{% endblock %}

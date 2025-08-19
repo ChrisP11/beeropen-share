@@ -10,9 +10,10 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseForbidden, HttpRequest, HttpResponse
+from django.http import HttpResponseForbidden, HttpRequest, HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Sum, Case, When, IntegerField, Count, Q
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
@@ -804,3 +805,75 @@ def player_bulk_import_view(request):
     return render(request, "outing/player_bulk_import.html", {
         "results": results,
     })
+
+
+
+
+
+#### Past Events Data
+def archive_event_view(request, year: int, event_type: str):
+    """Generic past-event page (year + type)."""
+
+    # Normalize/guard the type
+    event_type = (event_type or "").lower()
+    if event_type not in {"open", "ito", "local"}:
+        raise Http404("Unknown event type")
+
+    # --- Event content dictionary (add more years over time) ---
+    EVENTS = {
+        (2024, "open"): {
+            "title": "Beer Open 2024",
+            "date": "14 September 2024",
+            "location": "The Preserve at Oak Meadows",
+            # Place static files here later; leave None to show placeholders for now
+            "trophy_img": None,                 # e.g. "outing/archive/2024/trophy.jpg"
+            "logo_img":   None,                 # e.g. "outing/archive/2024/logo.jpg"
+            "writeup": "Blah Blah",
+            "odds_text": mark_safe(
+                """1150a - Sex in the Bathroom 
+Chris Marinelli, Mike Marinelli, Jay Gelfo-Klein, Brandon Billbey
+The no shirts no problem crew.  Listed odds for victory are generous.  The odds of one of them having sex in the bathroom on Saturday?  100%
+Odds 113-1
+
+Noon - Vowels and Vowels
+Karl Krewenka, Fphil De Craene, Ricardo Ciaccio, Mitch Boryszewski
+Pair of BO rookies in this crew.  One of them played D3 college golf.  Combine that with Karl's putting and Fphil's improved game?  These boys are amongst the favorites.
+Odds 9-4
+
+1210p - Big Willy Energy
+Craig Gantar, Jerry Brankin, Will Vanalsburg, Jason Sorce
+The returning champs had to swap out a wheel for their defense.  Big Off The Tee Beav always gives a team a chance, but repeating has only been done once (twice?  whatever).  A loss this year will give Goose the angst he needs for next year's MBOGA campaign.
+Odds 3-1
+
+1220p - Darrens Deserters
+Darren Tait, Todd Weiss, The Sizzler, Patrick Kleszynski
+What is a Beer Open without some hurt feelings over pairings?  This group wanted to be together.  Needed to be together.  Had other promises been made before they got all swoon-y with each other?  Three sides to every story.  This year's recipient of the dreaded Favorites tag.  I would watch your six boys....
+Odds 2-1
+
+1230p - Anger is an Energy
+Tom Melzl, Lee Erwin, Eric Burns, German Man
+We have never allowed an anonymous entry in the BO before.  But the anger & hurt are real and we acquiesced.  Will this group be more interested in hitting into the group in front of them then focused on victory?
+Odds  5-1
+
+1240p - The Holiest of Holies
+John Prouty, Brad Hunter, Mark Menacho, Mike Cooney
+Speaking of BO rookies, check out the big head on Brad!  Hunter is a player and he really likes winning.  Got a big stick of his own, combined with JP's approach shots and green game + some timely shots from Cooney? I see this group leading at the turn with a big number.  4 under?  5 under?  Better?  But Menacho is bringing out his super sized weed charcuterie board from his 50th.  That will...  have an effect on the back side score.
+Odds  5-2 
+
+1250p - Only Sacs That Matter
+Dave Willsey, Tom Canepa, Jim Scibek, Chris Prouty 
+A veteran BO group here.  50+ years at least and several trophies.  Willsey owns the Greatest Shot in BO history (it was amazing).  Teeing off last, they are in the cat bird seat and on the Organizer's home course.  Just another example of the deck being stacked against the field?  Finger's crossed, but.... feels like a first loser place finish.
+Odds 9-2
+
+(Placeholder for more pictures)"""
+            ),
+        },
+    }
+    # -------------------------------------------------------------
+
+    data = EVENTS.get((year, event_type))
+    if not data:
+        raise Http404("Event not found (yet!)")
+
+    data |= {"year": year, "event_type": event_type}
+    return render(request, "outing/archive_event.html", data)

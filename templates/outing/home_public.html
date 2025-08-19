@@ -1,43 +1,31 @@
 {% extends "base.html" %}
-{% load static %}
-
 {% block content %}
-<section class="hero-topo py-5 py-md-6">
-  <div class="container text-center">
-    <h1 class="display-4 fw-bold text-pine mb-2">Beer Open</h1>
-    <h3 class="text-green-emphasis mb-1">13 September 2025</h3>
-    <h3 class="text-green-emphasis mb-4">Arrowhead Golf Club</h3>
 
-    {% if user.is_authenticated %}
-      <a href="{% url 'dashboard' %}" class="btn btn-pine btn-lg me-2">Go to Dashboard</a>
-    {% else %}
-      <a href="{% url 'login' %}" class="btn btn-pine btn-lg me-2">Log in</a>
-      <a href="{% url 'magic_request' %}" class="btn btn-outline-pine btn-lg">Text me a sign-in link</a>
-    {% endif %}
-  </div>
-</section>
+<div class="container py-4">
+  <h1 class="display-4">Beer Open</h1>
+  <h3 class="mb-1">13 September 2025</h3>
+  <h3 class="mb-4">Arrowhead Golf Club</h3>
 
-<section class="container my-5">
-  <h4 class="text-pine mb-3">About</h4>
-  <p class="lead">A friendly annual outing with a light competitive spirit and heavy good vibes.</p>
-</section>
+  {% if user.is_authenticated %}
+    <p><a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a></p>
+  {% endif %}
 
-<section class="container my-5">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="text-pine mb-0">Past Events</h4>
-    <small class="text-muted">Archive coming soon</small>
-  </div>
-  <div class="row g-3">
-    <!-- placeholder tiles -->
-    <div class="col-6 col-sm-4 col-md-3">
-      <div class="card event-tile text-center">
-        <div class="ratio ratio-1x1 d-flex align-items-center justify-content-center p-3">
-          <img src="{% static 'logos/sample-logo.png' %}" alt="Event logo" class="img-fluid" style="max-height:70%;">
+  <h2 class="mt-5">Past Events</h2>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12 col-sm-6 col-lg-4">
+      <a class="text-decoration-none" href="{% url 'archive_event' 2024 'open' %}">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="h5 mb-1">Beer Open 2024</div>
+            <div class="text-muted">The Preserve at Oak Meadows</div>
+            <div class="small text-muted">14 September 2024</div>
+          </div>
         </div>
-        <div class="card-body py-2"><strong>Beer Open 2024</strong></div>
-      </div>
+      </a>
     </div>
-    <!-- add more later -->
+    <!-- Add more cards as you add more years -->
   </div>
-</section>
+</div>
+
 {% endblock %}
