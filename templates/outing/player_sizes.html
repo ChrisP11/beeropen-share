@@ -2,6 +2,15 @@
 {% load static %}
 {% block content %}
 <h2>Players & Shirt Sizes</h2>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% for label, n in count_rows %}
+    <span class="badge bg-secondary">{{ label }}: {{ n }}</span>
+  {% endfor %}
+  <span class="badge bg-warning text-dark">Unknown: {{ unknown_count }}</span>
+  <span class="badge bg-info text-dark">Total: {{ total_count }}</span>
+</div>
+
 <table class="table table-sm table-striped">
   <thead>
     <tr><th>First</th><th>Last</th><th>Team(s)</th><th>Shirt size</th></tr>

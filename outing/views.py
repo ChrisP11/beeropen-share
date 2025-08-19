@@ -668,8 +668,27 @@ def sms_replies_view(request):
 
 @staff_member_required
 def player_sizes_view(request):
-    players = Player.objects.prefetch_related("teams").order_by("last_name", "first_name")
-    return render(request, "outing/player_sizes.html", {"players": players})
+    """
+    Show only players who are marked as playing, plus a size summary.
+    """
+    players = (Player.objects
+               .filter(playing=True)
+               .prefetch_related("teams")
+               .order_by("last_name", "first_name"))
+
+    # Count sizes among *playing* players
+    SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL"]
+    counts = Counter(p.shirt_size for p in players if p.shirt_size)
+    count_rows = [(s, counts.get(s, 0)) for s in SIZE_ORDER]
+    unknown_count = sum(1 for p in players if not p.shirt_size)
+    total_count = players.count()
+
+    return render(request, "outing/player_sizes.html", {
+        "players": players,                 # playing only
+        "count_rows": count_rows,           # list of (size, count) in display order
+        "unknown_count": unknown_count,     # count of missing sizes
+        "total_count": total_count,         # total playing
+    })
 
 
 @staff_member_required
