@@ -916,3 +916,10 @@ Odds 9-2"""),
     return render(request, "outing/archive_event.html", data)
 
 
+def stats(request):
+    events = (
+        ArchiveEvent.objects
+        .filter(published=True)
+        .order_by("-year", "kind")
+    )
+    return render(request, "outing/stats.html", {"events": events})
