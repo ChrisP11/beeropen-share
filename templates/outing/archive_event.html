@@ -3,10 +3,6 @@
 
 {% block content %}
 <div class="container my-4 archive-copy">
-  <!-- <h1 class="mb-1">Beer Open {{ year }}</h1>
-  <p class="text-muted mb-3">
-    {{ location }}{% if date %} — {{ date|date:"j F Y" }}{% endif %}
-  </p> -->
 
 <!-- Hero -->
 <header class="text-center mb-4">
@@ -16,37 +12,22 @@
 </p>
 </header>
 
-  <!-- {# --- Plaque image --- #}
-  {% if plaque_url %}
-    <img src="{{ plaque_url }}" class="img-fluid mb-3 rounded" alt="Trophy plaque">
-  {% elif plaque %}
-    <img src="{% static plaque %}" class="img-fluid mb-3 rounded" alt="Trophy plaque">
-  {% endif %}
-
-  {# --- Logo image --- #}
-  {% if logo_url %}
-    <img src="{{ logo_url }}" class="img-fluid mb-4 rounded" alt="Event logo">
-  {% elif logo %}
-    <img src="{% static logo %}" class="img-fluid mb-4 rounded" alt="Event logo">
-  {% endif %} -->
-
-
   {# --- Plaque image (centered) --- #}
   {% if plaque_url %}
     <img src="{{ plaque_url }}" alt="Trophy plaque"
-         class="img-fluid rounded d-block mx-auto mb-3" style="max-width: 800px;">
+         class="img-fluid rounded d-block mx-auto mb-3 archive-hero-img">
   {% elif plaque %}
     <img src="{% static plaque %}" alt="Trophy plaque"
-         class="img-fluid rounded d-block mx-auto mb-3" style="max-width: 800px;">
+         class="img-fluid rounded d-block mx-auto mb-3 archive-hero-img">
   {% endif %}
 
   {# --- Logo image (centered) --- #}
   {% if logo_url %}
     <img src="{{ logo_url }}" alt="Event logo"
-         class="img-fluid rounded d-block mx-auto mb-4" style="max-width: 520px;">
+         class="img-fluid rounded d-block mx-auto mb-4 archive-logo-img">
   {% elif logo %}
     <img src="{% static logo %}" alt="Event logo"
-         class="img-fluid rounded d-block mx-auto mb-4" style="max-width: 520px;">
+         class="img-fluid rounded d-block mx-auto mb-4 archive-logo-img">
   {% endif %}
 
   {# --- Write-up --- #}
