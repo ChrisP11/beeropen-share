@@ -929,11 +929,6 @@ def team_history(request):
     return render(request, "outing/team_history.html")
 
 
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, render, redirect
-from django.http import HttpResponseForbidden
-
 @login_required
 def hole_score(request, round_id: int, hole: int):
     rnd = get_object_or_404(Round, pk=round_id)
@@ -952,32 +947,46 @@ def hole_score(request, round_id: int, hole: int):
     score, _ = Score.objects.get_or_create(round=rnd, hole=hole)
 
     if request.method == "POST":
+        action = request.POST.get("go", "save")
+
+        # --- Rule #2: Scorecard button never saves; just navigate back ---
+        if action == "card":
+            return redirect("team_scorecard", team_id=rnd.team_id)
+
+        # Otherwise it's a Save attempt
         if not can_edit:
             messages.error(request, "This scorecard is locked.")
             return redirect("hole_score", round_id=round_id, hole=hole)
 
-        # Save strokes (1–9) and drive used
+        # Save strokes (1–9) — allow blank if user clears it
         raw = (request.POST.get("strokes") or "").strip()
         score.strokes = int(raw) if raw.isdigit() else None
         score.save(update_fields=["strokes"])
 
+        # Drive used (must belong to this team)
         drive_pid = (request.POST.get("drive_pid") or "").strip()
+        has_drive = False
         if drive_pid:
             p = rnd.team.players.filter(pk=drive_pid).first()
             if p:
                 DriveUsed.objects.update_or_create(score=score, defaults={"player": p})
+                has_drive = True
         else:
+            # explicit clear
             DriveUsed.objects.filter(score=score).delete()
 
-        messages.success(request, "Hole saved.")
+        # Feedback + redirect logic
+        if not has_drive:
+            # --- Rule #1: do not advance if drive not chosen ---
+            messages.success(request, "Score saved. Choose a ‘Drive used’ to advance to the next hole.")
+            return redirect("hole_score", round_id=round_id, hole=hole)
 
-        # Button behavior: save → next hole (except 9,18), scorecard → back
-        action = request.POST.get("go", "save")
-        if action == "card" or hole in {9, 18}:
+        # We have a drive; advance unless it's 9 or 18
+        messages.success(request, "Hole saved.")
+        if hole in {9, 18}:
             return redirect("team_scorecard", team_id=rnd.team_id)
-        else:
-            next_hole = min(hole + 1, 18)
-            return redirect("hole_score", round_id=rnd.id, hole=next_hole)
+        next_hole = min(hole + 1, 18)
+        return redirect("hole_score", round_id=rnd.id, hole=next_hole)
 
     # GET: display
     par_obj = CoursePar.objects.filter(hole=hole).first()
