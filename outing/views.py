@@ -923,3 +923,7 @@ def stats(request):
         .order_by("-year", "kind")
     )
     return render(request, "outing/stats.html", {"events": events})
+
+
+def team_history(request):
+    return render(request, "outing/team_history.html")

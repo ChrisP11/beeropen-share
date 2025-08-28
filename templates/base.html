@@ -41,7 +41,7 @@
             {% endif %}
             {% if user.is_authenticated %}
               <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">{{ user.get_full_name|default:user.username }}</a></li>
-              <li><a href="{% url 'stats' %}">Stats</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'stats' %}">Stats</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}?next={% url 'home_public' %}">Log out</a></li>
             {% else %}
               <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Log in</a></li>

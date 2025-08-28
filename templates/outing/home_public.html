@@ -8,7 +8,7 @@
   <h3 class="mb-4">Arrowhead Golf Club</h3>
 
   {% if user.is_authenticated %}
-    <p><a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a></p>
+    <!-- <p><a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a></p> -->
   {% endif %}
 
 <section class="container my-4">
@@ -27,7 +27,7 @@
                   <div class="d-flex align-items-center justify-content-center h-100 text-muted">No Logo</div>
                 {% endif %}
               </a>
-              <figcaption class="mt-2 fw-bold">{{ ev.year }}</figcaption>
+              <figcaption class="mt-2 fw-bold">{{ ev.year }} - {{ ev.kind }}</figcaption>
             </figure>
           </div>
         {% endfor %}
