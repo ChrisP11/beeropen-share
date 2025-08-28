@@ -927,3 +927,32 @@ def stats(request):
 
 def team_history(request):
     return render(request, "outing/team_history.html")
+
+
+from django.shortcuts import get_object_or_404, render
+from .models import Round, Score, CoursePar
+
+def hole_score(request, round_id: int, hole: int):
+    rnd = get_object_or_404(Round, pk=round_id)
+    is_member = rnd.team.players.filter(user=request.user).exists()
+    if not (request.user.is_staff or is_member):
+        return HttpResponseForbidden("Not your team")
+    # Ensure a Score object exists so we can show current strokes (even if blank)
+    score, _ = Score.objects.get_or_create(round=rnd, hole=hole)
+
+    # Par from CoursePar if defined; yardage is a placeholder for now
+    par_obj = CoursePar.objects.filter(hole=hole).first()
+    par = par_obj.par if par_obj else "—"
+    yardage = "—"  # placeholder until you add yardages
+
+    players = rnd.team.players.all().order_by("last_name", "first_name")
+
+    context = {
+        "round": rnd,
+        "hole": hole,
+        "yardage": yardage,
+        "par": par,
+        "score": score,        # may have score.strokes or be blank
+        "players": players,    # for dropdown
+    }
+    return render(request, "outing/hole_score.html", context)

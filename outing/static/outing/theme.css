@@ -88,3 +88,16 @@ h1,h2,h3,.navbar-brand{
   object-fit: contain;       /* <-- key change (was cover) */
   display: block;
 }
+
+/* Never exceed the screen; look nice on desktop too */
+.archive-hero-img {
+  width: 100%;
+  max-width: min(800px, 100%);
+  height: auto;
+}
+
+.archive-logo-img {
+  width: 100%;
+  max-width: min(520px, 100%);
+  height: auto;
+}

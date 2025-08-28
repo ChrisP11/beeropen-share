@@ -29,6 +29,7 @@ urlpatterns = [
     # App pages
     path("app/", views.dashboard_view, name="dashboard"),
     path("team/<int:team_id>/scorecard/", views.team_scorecard_view, name="team_scorecard"),
+    path("round/<int:round_id>/hole/<int:hole>/", views.hole_score, name="hole_score"),
     path("leaderboard/", views.leaderboard_page, name="leaderboard"),
     path("leaderboard/partial/", views.leaderboard_partial, name="leaderboard_partial"),
     path("stats/", views.stats, name="stats"),

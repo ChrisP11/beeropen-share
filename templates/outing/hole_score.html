@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Hole {{ hole }} · Beer Open{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 720px;">
+  <h1 class="mb-3">Hole {{ hole }}</h1>
+
+  <div class="row g-3">
+    <div class="col-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="fw-bold text-muted">Yardage</div>
+          <div class="display-6">{{ yardage }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="fw-bold text-muted">Par</div>
+          <div class="display-6">{{ par }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <!-- Read-only UI for now; we’ll wire POST later -->
+  <form>
+    <!-- “Dial” 1–9 -->
+    <label class="form-label fw-bold">Hole Score</label>
+    <input
+      type="range"
+      class="form-range"
+      min="1" max="9" step="1"
+      value="{{ score.strokes|default_if_none:4 }}"
+      id="strokesRange"
+      list="strokesTicks">
+    <datalist id="strokesTicks">
+      {% for n in "123456789" %}
+      <option value="{{ forloop.counter }}"></option>
+      {% endfor %}
+    </datalist>
+    <div class="small text-muted">
+      Selected: <span id="strokesValue">{{ score.strokes|default_if_none:4 }}</span>
+    </div>
+
+    <script>
+      (function(){
+        const r = document.getElementById('strokesRange');
+        const out = document.getElementById('strokesValue');
+        r.addEventListener('input', () => { out.textContent = r.value; });
+      })();
+    </script>
+
+    <div class="mt-4">
+      <label class="form-label fw-bold">Drive used</label>
+      <select class="form-select" id="driveUsed" name="drive_used" disabled>
+        <option value="">Select player…</option>
+        {% for p in players %}
+          <option value="{{ p.id }}">{{ p.first_name }} {{ p.last_name }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Read-only preview; saving to be added next.</div>
+    </div>
+
+    <div class="mt-4">
+      <a href="javascript:history.back()" class="btn btn-outline-secondary">Back</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

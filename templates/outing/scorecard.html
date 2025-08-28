@@ -16,7 +16,10 @@
         <tr>
           <th>Row</th>
           {% for h in holes %}
-            <th>{{ h.n }}</th>
+            <th scope="col" class="text-center">
+              <a href="{% url 'hole_score' round.id h.n %}">{{ h.n }}</a>
+            </th>
+            <!-- <th>{{ h.n }}</th> -->
             {% if h.n == 9 %}
               <th class="table-secondary">Out</th>
             {% endif %}
