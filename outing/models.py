@@ -159,6 +159,16 @@ class ArchiveEvent(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
+    swag = models.CharField(max_length=120, blank=True, null=True)
+    p1_first_name = models.CharField(max_length=50, blank=True, null=True)
+    p1_last_name  = models.CharField(max_length=50, blank=True, null=True)
+    p2_first_name = models.CharField(max_length=50, blank=True, null=True)
+    p2_last_name  = models.CharField(max_length=50, blank=True, null=True)
+    p3_first_name = models.CharField(max_length=50, blank=True, null=True)
+    p3_last_name  = models.CharField(max_length=50, blank=True, null=True)
+    p4_first_name = models.CharField(max_length=50, blank=True, null=True)
+    p4_last_name  = models.CharField(max_length=50, blank=True, null=True)
+
     class Meta:
         unique_together = ("year", "kind")
         ordering = ["-year", "kind"]
