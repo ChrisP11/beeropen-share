@@ -60,10 +60,11 @@
 
     <div class="d-flex gap-2 mt-4">
       {% if can_edit %}
-        <button class="btn btn-primary" type="submit" name="next" value="stay">Save</button>
-        <button class="btn btn-outline-primary" type="submit" name="next" value="card">Save &amp; Back to Scorecard</button>
+        <!-- Save: advances to next hole (except 9 & 18 go to scorecard) -->
+        <button class="btn btn-primary" type="submit" name="go" value="save">Save</button>
+        <!-- Scorecard: always return to scorecard -->
+        <button class="btn btn-outline-primary" type="submit" name="go" value="card">Scorecard</button>
       {% endif %}
-      <a href="javascript:history.back()" class="btn btn-outline-secondary">Back</a>
     </div>
   </form>
 </div>

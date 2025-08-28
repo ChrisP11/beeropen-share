@@ -929,8 +929,10 @@ def team_history(request):
     return render(request, "outing/team_history.html")
 
 
-from django.shortcuts import get_object_or_404, render
-from .models import Round, Score, CoursePar
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render, redirect
+from django.http import HttpResponseForbidden
 
 @login_required
 def hole_score(request, round_id: int, hole: int):
@@ -949,19 +951,16 @@ def hole_score(request, round_id: int, hole: int):
     # Ensure a Score exists
     score, _ = Score.objects.get_or_create(round=rnd, hole=hole)
 
-    # Save on POST
     if request.method == "POST":
         if not can_edit:
             messages.error(request, "This scorecard is locked.")
             return redirect("hole_score", round_id=round_id, hole=hole)
 
-        # Strokes 1–9 (or blank if bad)
+        # Save strokes (1–9) and drive used
         raw = (request.POST.get("strokes") or "").strip()
-        strokes = int(raw) if raw.isdigit() else None
-        score.strokes = strokes
+        score.strokes = int(raw) if raw.isdigit() else None
         score.save(update_fields=["strokes"])
 
-        # Drive used (must belong to this team)
         drive_pid = (request.POST.get("drive_pid") or "").strip()
         if drive_pid:
             p = rnd.team.players.filter(pk=drive_pid).first()
@@ -971,15 +970,19 @@ def hole_score(request, round_id: int, hole: int):
             DriveUsed.objects.filter(score=score).delete()
 
         messages.success(request, "Hole saved.")
-        nxt = request.POST.get("next", "stay")
-        if nxt == "card":
-            return redirect("team_scorecard", team_id=rnd.team_id)
-        return redirect("hole_score", round_id=round_id, hole=hole)
 
-    # Read-only display bits
+        # Button behavior: save → next hole (except 9,18), scorecard → back
+        action = request.POST.get("go", "save")
+        if action == "card" or hole in {9, 18}:
+            return redirect("team_scorecard", team_id=rnd.team_id)
+        else:
+            next_hole = min(hole + 1, 18)
+            return redirect("hole_score", round_id=rnd.id, hole=next_hole)
+
+    # GET: display
     par_obj = CoursePar.objects.filter(hole=hole).first()
     par = par_obj.par if par_obj else "—"
-    yardage = "—"  # placeholder until you add yardages
+    yardage = "—"  # placeholder until yardages are stored
 
     current_drive_pid = getattr(getattr(score, "drive_used", None), "player_id", None)
     players = rnd.team.players.all().order_by("last_name", "first_name")
