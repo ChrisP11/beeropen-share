@@ -932,19 +932,56 @@ def team_history(request):
 from django.shortcuts import get_object_or_404, render
 from .models import Round, Score, CoursePar
 
+@login_required
 def hole_score(request, round_id: int, hole: int):
     rnd = get_object_or_404(Round, pk=round_id)
+
+    # Permissions: team member or staff
     is_member = rnd.team.players.filter(user=request.user).exists()
     if not (request.user.is_staff or is_member):
         return HttpResponseForbidden("Not your team")
-    # Ensure a Score object exists so we can show current strokes (even if blank)
+
+    # Edit rights mirror the scorecard page
+    base_can_edit = request.user.is_staff or rnd.team.players.filter(user=request.user, can_score=True).exists()
+    is_final = bool(rnd.finalized_at)
+    can_edit = base_can_edit and not is_final
+
+    # Ensure a Score exists
     score, _ = Score.objects.get_or_create(round=rnd, hole=hole)
 
-    # Par from CoursePar if defined; yardage is a placeholder for now
+    # Save on POST
+    if request.method == "POST":
+        if not can_edit:
+            messages.error(request, "This scorecard is locked.")
+            return redirect("hole_score", round_id=round_id, hole=hole)
+
+        # Strokes 1–9 (or blank if bad)
+        raw = (request.POST.get("strokes") or "").strip()
+        strokes = int(raw) if raw.isdigit() else None
+        score.strokes = strokes
+        score.save(update_fields=["strokes"])
+
+        # Drive used (must belong to this team)
+        drive_pid = (request.POST.get("drive_pid") or "").strip()
+        if drive_pid:
+            p = rnd.team.players.filter(pk=drive_pid).first()
+            if p:
+                DriveUsed.objects.update_or_create(score=score, defaults={"player": p})
+        else:
+            DriveUsed.objects.filter(score=score).delete()
+
+        messages.success(request, "Hole saved.")
+        nxt = request.POST.get("next", "stay")
+        if nxt == "card":
+            return redirect("team_scorecard", team_id=rnd.team_id)
+        return redirect("hole_score", round_id=round_id, hole=hole)
+
+    # Read-only display bits
     par_obj = CoursePar.objects.filter(hole=hole).first()
     par = par_obj.par if par_obj else "—"
     yardage = "—"  # placeholder until you add yardages
 
+    current_drive_pid = getattr(getattr(score, "drive_used", None), "player_id", None)
     players = rnd.team.players.all().order_by("last_name", "first_name")
 
     context = {
@@ -952,7 +989,10 @@ def hole_score(request, round_id: int, hole: int):
         "hole": hole,
         "yardage": yardage,
         "par": par,
-        "score": score,        # may have score.strokes or be blank
-        "players": players,    # for dropdown
+        "score": score,
+        "players": players,
+        "current_drive_pid": current_drive_pid,
+        "selected_strokes": score.strokes or 4,
+        "can_edit": can_edit,
     }
     return render(request, "outing/hole_score.html", context)
