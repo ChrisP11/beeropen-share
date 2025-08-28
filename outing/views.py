@@ -943,46 +943,42 @@ def hole_score(request, round_id: int, hole: int):
     is_final = bool(rnd.finalized_at)
     can_edit = base_can_edit and not is_final
 
-    # Ensure a Score exists
+    # Ensure a Score exists (we'll only save if drive is chosen)
     score, _ = Score.objects.get_or_create(round=rnd, hole=hole)
 
     if request.method == "POST":
         action = request.POST.get("go", "save")
 
-        # --- Rule #2: Scorecard button never saves; just navigate back ---
+        # Scorecard button never saves
         if action == "card":
             return redirect("team_scorecard", team_id=rnd.team_id)
 
-        # Otherwise it's a Save attempt
         if not can_edit:
             messages.error(request, "This scorecard is locked.")
             return redirect("hole_score", round_id=round_id, hole=hole)
 
-        # Save strokes (1–9) — allow blank if user clears it
+        # --- NEW RULE: require drive to save anything ---
+        drive_pid = (request.POST.get("drive_pid") or "").strip()
+        if not drive_pid:
+            messages.error(request, "Choose a ‘Drive used’ to save this hole.")
+            return redirect("hole_score", round_id=round_id, hole=hole)
+
+        # OK to save: strokes (1–9) and drive (must be this team’s player)
         raw = (request.POST.get("strokes") or "").strip()
         score.strokes = int(raw) if raw.isdigit() else None
         score.save(update_fields=["strokes"])
 
-        # Drive used (must belong to this team)
-        drive_pid = (request.POST.get("drive_pid") or "").strip()
-        has_drive = False
-        if drive_pid:
-            p = rnd.team.players.filter(pk=drive_pid).first()
-            if p:
-                DriveUsed.objects.update_or_create(score=score, defaults={"player": p})
-                has_drive = True
+        p = rnd.team.players.filter(pk=drive_pid).first()
+        if p:
+            DriveUsed.objects.update_or_create(score=score, defaults={"player": p})
         else:
-            # explicit clear
-            DriveUsed.objects.filter(score=score).delete()
-
-        # Feedback + redirect logic
-        if not has_drive:
-            # --- Rule #1: do not advance if drive not chosen ---
-            messages.success(request, "Score saved. Choose a ‘Drive used’ to advance to the next hole.")
+            # Shouldn't happen if the form is correct, but guard anyway
+            messages.error(request, "Invalid player selection for ‘Drive used’.")
             return redirect("hole_score", round_id=round_id, hole=hole)
 
-        # We have a drive; advance unless it's 9 or 18
         messages.success(request, "Hole saved.")
+
+        # Advance unless it’s the end of a nine
         if hole in {9, 18}:
             return redirect("team_scorecard", team_id=rnd.team_id)
         next_hole = min(hole + 1, 18)
@@ -991,7 +987,7 @@ def hole_score(request, round_id: int, hole: int):
     # GET: display
     par_obj = CoursePar.objects.filter(hole=hole).first()
     par = par_obj.par if par_obj else "—"
-    yardage = "—"  # placeholder until yardages are stored
+    yardage = "—"  # placeholder
 
     current_drive_pid = getattr(getattr(score, "drive_used", None), "player_id", None)
     players = rnd.team.players.all().order_by("last_name", "first_name")
