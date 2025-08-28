@@ -210,21 +210,47 @@ class ArchiveImageInline(admin.TabularInline):
 
 @admin.register(ArchiveEvent)
 class ArchiveEventAdmin(admin.ModelAdmin):
-    list_display = ("year", "kind", "location", "published")
+    list_display = ("year", "kind", "location", "published", "swag", "champions")
     list_filter  = ("kind", "published")
-    search_fields = ("location",)
+    search_fields = (
+        "year", "location", "swag",
+        "p1_first_name", "p1_last_name",
+        "p2_first_name", "p2_last_name",
+        "p3_first_name", "p3_last_name",
+        "p4_first_name", "p4_last_name",
+    )
 
     fieldsets = (
-        (None, {"fields": ("year", "kind", "date", "location", "published")}),
-        ("Assets (static paths)", {
-            "fields": ("logo", "plaque", "logo_preview", "plaque_preview"),
-            "description": "Store relative static paths committed in the repo, e.g. 'outing/archive/2024/BeerOpen2024.png'."
+        ("Core", {"fields": (("year", "kind"), "date", "location", "swag")}),
+        ("Champions", {
+            "fields": (
+                ("p1_first_name", "p1_last_name"),
+                ("p2_first_name", "p2_last_name"),
+                ("p3_first_name", "p3_last_name"),
+                ("p4_first_name", "p4_last_name"),
+            )
         }),
-        ("Content", {"fields": ("writeup_md", "odds_md")}),
-        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+        ("Assets", {"fields": ("logo", "plaque")}),
+        ("Content", {"fields": ("writeup_md", "odds_md"), "classes": ("collapse",)}),
+        ("Publishing", {"fields": ("published",)}),
+        ("Timestamps", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",)
+        }),
     )
     readonly_fields = ("logo_preview", "plaque_preview", "created_at", "updated_at")
     inlines = [ArchiveImageInline]
+
+    def champions(self, obj):
+        parts = []
+        for i in (1, 2, 3, 4):
+            fn = getattr(obj, f"p{i}_first_name") or ""
+            ln = getattr(obj, f"p{i}_last_name") or ""
+            name = (fn + " " + ln).strip()
+            if name:
+                parts.append(name)
+        return " · ".join(parts) or "—"
+    champions.short_description = "Champions"
 
     def logo_preview(self, obj):
         if obj.logo:
