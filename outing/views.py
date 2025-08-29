@@ -74,59 +74,85 @@ from django.contrib import messages
 @require_http_methods(["GET", "POST"])
 def event_management_view(request):
     settings = EventSettings.load()
-    configured_date = settings.event_date
 
-    # --- POST actions ---
+    # POST actions (unchanged): create rounds or close event for a given date
     if request.method == "POST":
         action = request.POST.get("action", "")
-        raw = (request.POST.get("event_date") or "").strip()
-        dt = parse_date(raw)
+        date_raw = (request.POST.get("event_date") or "").strip()
 
-        if action == "create_rounds" and dt:
+        # parse YYYY-MM-DD safely
+        try:
+            y, m, d = [int(x) for x in date_raw.split("-")]
+            target_date = date(y, m, d)
+        except Exception:
+            target_date = None
+
+        if not target_date:
+            messages.error(request, "Invalid event date.")
+            return redirect("event_management")
+
+        if action == "create_rounds":
+            # create empty rounds for all teams for that date (no dedupe by date)
             created = 0
             for t in Team.objects.all():
-                _, made = Round.objects.get_or_create(team=t, event_date=dt)
-                if made:
-                    created += 1
-            messages.success(request, f"Created {created} round(s) for {dt}.")
+                Round.objects.get_or_create(team=t, event_date=target_date)
+                created += 1
+            messages.success(request, f"Created/ensured rounds for {created} team(s) on {target_date}.")
             return redirect("event_management")
 
-        if action == "close_event" and dt:
+        if action == "close_event":
             n = (Round.objects
-                 .filter(event_date=dt, finalized_at__isnull=True)
-                 .update(finalized_at=timezone.now(), finalized_by=request.user))
-            messages.success(request, f"Closed {dt}: finalized {n} round(s).")
+                 .filter(event_date=target_date, finalized_at__isnull=True)
+                 .update(finalized_at=timezone.now(), finalized_by=None))
+            messages.success(request, f"Finalized {n} open round(s) for {target_date}.")
             return redirect("event_management")
 
-    # --- Build rows from existing rounds ---
-    rows = list(
-        Round.objects.values("event_date")
-        .annotate(open_rounds=Count("id", filter=Q(finalized_at__isnull=True)))
+    # ---- Build table rows ----
+    # Historical rows: one row per date that has rounds (open or closed).
+    round_rows = (
+        Round.objects
+        .values("event_date")
+        .annotate(
+            total_rounds=Count("id"),
+            open_rounds=Count("id", filter=Q(finalized_at__isnull=True)),
+        )
         .order_by("-event_date")
     )
 
-    # mark current settings & attach course/tee for the configured date
-    for r in rows:
-        r["is_current"] = (configured_date == r["event_date"])
-        if r["is_current"]:
-            r["course"] = settings.scoring_course
-            r["tee"] = settings.scoring_tee
+    events = [
+        {
+            "event_date": r["event_date"],
+            "course": None,           # unknown for historical rows (unless you store it elsewhere)
+            "tee": None,
+            "is_current": (settings.event_date == r["event_date"]),
+            "total_rounds": r["total_rounds"],
+            "open_rounds": r["open_rounds"],
+        }
+        for r in round_rows
+    ]
 
-    # If the configured date has no rows yet, insert a synthetic one
-    if configured_date and not any(r["event_date"] == configured_date for r in rows):
-        rows.insert(0, {
-            "event_date": configured_date,
-            "open_rounds": 0,
-            "is_current": True,
-            "course": settings.scoring_course,
-            "tee": settings.scoring_tee,
-        })
+    # Add a distinct "Configured" row from EventSettings, even if the date already exists above.
+    # (This prevents replacement/merging when dates match.)
+    current_date = settings.event_date
+    open_for_current = next((r["open_rounds"] for r in round_rows if r["event_date"] == current_date), 0)
+    total_for_current = next((r["total_rounds"] for r in round_rows if r["event_date"] == current_date), 0)
 
-    return render(request, "outing/event_management.html", {
-        "events": rows,          # use this in the template
-        "settings": settings,
+    events.append({
+        "event_date": current_date,
+        "course": settings.scoring_course,
+        "tee": settings.scoring_tee,
+        "is_current": True,
+        "total_rounds": total_for_current,
+        "open_rounds": open_for_current,
     })
 
+    # Sort newest date first; when dates tie, put the Configured row last so you can see both.
+    events.sort(key=lambda e: (e["event_date"], e["is_current"]), reverse=True)
+
+    return render(request, "outing/event_management.html", {
+        "settings": settings,
+        "events": events,
+    })
 
 def _parse_date_yyyy_mm_dd(s: str) -> date | None:
     try:
