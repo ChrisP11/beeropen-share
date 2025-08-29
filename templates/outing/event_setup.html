@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Set Up Event · Beer Open{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <h1 class="mb-3">Set Up Event</h1>
+
+  {# Warning: event(s) in progress #}
+  {% if active_dates %}
+    <div class="alert alert-danger">
+      <strong>Warning:</strong> There is an event in progress (unfinalized rounds exist).
+      <ul class="mb-0">
+        {% for r in active_dates %}
+          <li>{{ r.event_date }} — {{ r.open_rounds }} open round(s)</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if step == "form" %}
+    <form method="post" class="card">
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Event date</label>
+            <input type="date" name="event_date" class="form-control"
+                   value="{{ form_vals.event_date }}">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Course</label>
+            <select name="course_id" id="courseSelect" class="form-select">
+              <option value="">— Select —</option>
+              {% for c in courses %}
+                <option value="{{ c.id }}"
+                  {% if form_vals.course_id|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
+                  {{ c.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Tee</label>
+            <select name="tee_id" id="teeSelect" class="form-select">
+              <option value="">— Select —</option>
+              {# initial fill (if course preselected) — JS will also manage it #}
+              {% for c in courses %}
+                {% if form_vals.course_id|default:'' == c.id|stringformat:"s" %}
+                  {% for t in c.tees.all|dictsort:"name" %}
+                    <option value="{{ t.id }}"
+                      {% if form_vals.tee_id|default:'' == t.id|stringformat:"s" %}selected{% endif %}>
+                      {{ t.name }}
+                    </option>
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer d-flex gap-2">
+        <button class="btn btn-primary" type="submit" name="action" value="preview">
+          Continue
+        </button>
+        <a href="{% url 'event_management' %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+
+    <script id="tees-json" type="application/json">{{ tees_by_course|safe }}</script>
+  <script>
+    (function(){
+      const teesByCourse = JSON.parse(document.getElementById('tees-json').textContent);
+      const courseSel = document.getElementById('courseSelect');
+      const teeSel    = document.getElementById('teeSelect');
+
+      function repopulateTees(){
+        const cid  = courseSel.value;
+        const tees = teesByCourse[cid] || [];
+        teeSel.innerHTML = '<option value="">— Select —</option>';
+        tees.forEach(([id, name]) => {
+          const opt = document.createElement('option');
+          opt.value = id; opt.textContent = name;
+          teeSel.appendChild(opt);
+        });
+      }
+      courseSel.addEventListener('change', repopulateTees);
+    })();
+  </script>
+
+  {% elif step == "confirm" %}
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Confirm Event Details</h5>
+        <dl class="row">
+          <dt class="col-sm-3">Date</dt>
+          <dd class="col-sm-9">{{ confirm_vals.event_date }}</dd>
+
+          <dt class="col-sm-3">Course</dt>
+          <dd class="col-sm-9">{{ confirm_vals.course.name }}</dd>
+
+          <dt class="col-sm-3">Tee</dt>
+          <dd class="col-sm-9">{{ confirm_vals.tee.name }}</dd>
+        </dl>
+        <p class="text-muted mb-0">Please confirm. You can change these later if needed.</p>
+      </div>
+      <div class="card-footer d-flex gap-2">
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="event_date" value="{{ confirm_vals.event_date|date:'Y-m-d' }}">
+          <input type="hidden" name="course_id"  value="{{ confirm_vals.course.id }}">
+          <input type="hidden" name="tee_id"     value="{{ confirm_vals.tee.id }}">
+          <button class="btn btn-success" name="action" value="confirm">Confirm &amp; Save</button>
+        </form>
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="event_date" value="{{ confirm_vals.event_date|date:'Y-m-d' }}">
+          <input type="hidden" name="course_id"  value="{{ confirm_vals.course.id }}">
+          <input type="hidden" name="tee_id"     value="{{ confirm_vals.tee.id }}">
+          <button class="btn btn-outline-secondary" name="action" value="preview">Back</button>
+        </form>
+        <a href="{% url 'event_management' %}" class="btn btn-link ms-auto">Cancel</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

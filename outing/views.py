@@ -1,5 +1,6 @@
 import csv, io
 import bleach
+import json
 from datetime import date, time
 from typing import Dict, List, Optional
 from collections import Counter, defaultdict
@@ -14,6 +15,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Sum, Case, When, IntegerField, Count, Q
 from django.utils.safestring import mark_safe
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.timezone import now
 from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST, require_http_methods
@@ -63,66 +65,155 @@ def admin_hub_view(request):
     return render(request, "outing/admin_hub.html")
 
 
+from django.utils.dateparse import parse_date
+from django.utils import timezone
+from django.db.models import Count, Q
+from django.contrib import messages
+
 @staff_member_required
 @require_http_methods(["GET", "POST"])
 def event_management_view(request):
-    """
-    Simple dashboard for events:
-      - show 'active' event dates (any date with at least one unfinalized round)
-      - close an event (finalize all still-open rounds for that date)
-      - link to 'kick off a new event' (placeholder)
-    """
-    # POST: close an event by date (YYYY-MM-DD)
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "close":
-            date_str = (request.POST.get("event_date") or "").strip()
-            if not date_str:
-                messages.error(request, "No event date provided.")
-                return redirect("event_management")
-            try:
-                from datetime import date as _d
-                y, m, d = [int(x) for x in date_str.split("-")]
-                target = _d(y, m, d)
-            except Exception:
-                messages.error(request, f"Invalid date: {date_str}")
-                return redirect("event_management")
+    settings = EventSettings.load()
+    configured_date = settings.event_date
 
-            open_qs = Round.objects.filter(event_date=target, finalized_at__isnull=True)
-            updated = open_qs.update(finalized_at=now(), finalized_by=request.user)
-            if updated:
-                messages.success(request, f"Closed event {target} (finalized {updated} round(s)).")
-            else:
-                messages.info(request, f"No open rounds to close for {target}.")
+    # --- POST actions ---
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        raw = (request.POST.get("event_date") or "").strip()
+        dt = parse_date(raw)
+
+        if action == "create_rounds" and dt:
+            created = 0
+            for t in Team.objects.all():
+                _, made = Round.objects.get_or_create(team=t, event_date=dt)
+                if made:
+                    created += 1
+            messages.success(request, f"Created {created} round(s) for {dt}.")
             return redirect("event_management")
 
-    # GET: build list of event dates with stats
-    # 'Active' = dates that still have at least one unfinalized round
-    dates = (
-        Round.objects
-        .values("event_date")
-        .annotate(
-            total_rounds=Count("id"),
-            open_rounds=Count("id", filter=Q(finalized_at__isnull=True)),
-        )
+        if action == "close_event" and dt:
+            n = (Round.objects
+                 .filter(event_date=dt, finalized_at__isnull=True)
+                 .update(finalized_at=timezone.now(), finalized_by=request.user))
+            messages.success(request, f"Closed {dt}: finalized {n} round(s).")
+            return redirect("event_management")
+
+    # --- Build rows from existing rounds ---
+    rows = list(
+        Round.objects.values("event_date")
+        .annotate(open_rounds=Count("id", filter=Q(finalized_at__isnull=True)))
         .order_by("-event_date")
     )
 
-    es = EventSettings.load()  # singleton (current settings)
-    context = {
-        "dates": dates,
-        "settings": es,
-    }
-    return render(request, "outing/event_management.html", context)
+    # mark current settings & attach course/tee for the configured date
+    for r in rows:
+        r["is_current"] = (configured_date == r["event_date"])
+        if r["is_current"]:
+            r["course"] = settings.scoring_course
+            r["tee"] = settings.scoring_tee
 
+    # If the configured date has no rows yet, insert a synthetic one
+    if configured_date and not any(r["event_date"] == configured_date for r in rows):
+        rows.insert(0, {
+            "event_date": configured_date,
+            "open_rounds": 0,
+            "is_current": True,
+            "course": settings.scoring_course,
+            "tee": settings.scoring_tee,
+        })
+
+    return render(request, "outing/event_management.html", {
+        "events": rows,          # use this in the template
+        "settings": settings,
+    })
+
+
+def _parse_date_yyyy_mm_dd(s: str) -> date | None:
+    try:
+        y, m, d = [int(x) for x in (s or "").split("-")]
+        return date(y, m, d)
+    except Exception:
+        return None
 
 @staff_member_required
-def event_setup_placeholder(request):
-    """
-    Placeholder page the 'Kick off new event' button links to.
-    You’ll replace this with the real multi-step setup later.
-    """
-    return render(request, "outing/event_setup_placeholder.html", {})
+@require_http_methods(["GET", "POST"])
+def event_setup_view(request):
+    settings = EventSettings.load()
+
+    # Show any active (unfinalized) rounds as a warning banner
+    active_qs = (
+        Round.objects
+        .values("event_date")
+        .annotate(open_rounds=Count("id", filter=Q(finalized_at__isnull=True)))
+        .filter(open_rounds__gt=0)
+        .order_by("-event_date")
+    )
+    active_dates = list(active_qs)
+
+    # Courses + tees, preloaded
+    courses = Course.objects.prefetch_related("tees").order_by("name")
+
+    # Build { "course_id": [[tee_id, "Name"], ...], ... } as REAL JSON
+    tees_by_course = {
+        str(c.id): [[t.id, t.name] for t in c.tees.all().order_by("name")]
+        for c in courses
+    }
+    tees_json = mark_safe(json.dumps(tees_by_course))
+
+    if request.method == "POST":
+        action       = request.POST.get("action", "preview")
+        ev_date_raw  = (request.POST.get("event_date") or "").strip()
+        course_id    = request.POST.get("course_id") or ""
+        tee_id       = request.POST.get("tee_id") or ""
+
+        ev_date = parse_date(ev_date_raw)
+        course  = Course.objects.filter(pk=course_id).first() if course_id else None
+        tee     = TeeBox.objects.filter(pk=tee_id, course=course).first() if (tee_id and course) else None
+
+        if not ev_date or not course or not tee:
+            messages.error(request, "Pick a valid date, course, and tee.")
+            form_vals = {
+                "event_date": ev_date_raw or (settings.event_date or date.today()).isoformat(),
+                "course_id": course_id,
+                "tee_id": tee_id,
+            }
+            return render(request, "outing/event_setup.html", {
+                "step": "form",
+                "courses": courses,
+                "tees_by_course": tees_json,
+                "form_vals": form_vals,
+                "active_dates": active_dates,
+            })
+
+        if action == "confirm":
+            # Persist to EventSettings
+            settings.event_date = ev_date
+            settings.scoring_course = course
+            settings.scoring_tee = tee
+            settings.save()
+            messages.success(request, f"Event set: {ev_date} @ {course.name} ({tee.name}).")
+            return redirect("event_management")
+
+        # action == "preview" → confirmation screen
+        return render(request, "outing/event_setup.html", {
+            "step": "confirm",
+            "confirm_vals": {"event_date": ev_date, "course": course, "tee": tee},
+            "active_dates": active_dates,
+        })
+
+    # GET → initial form defaults (pre-fill from EventSettings if present)
+    form_vals = {
+        "event_date": (settings.event_date or date.today()).isoformat(),
+        "course_id": str(settings.scoring_course_id or ""),
+        "tee_id": str(settings.scoring_tee_id or ""),
+    }
+    return render(request, "outing/event_setup.html", {
+        "step": "form",
+        "courses": courses,
+        "tees_by_course": tees_json,
+        "form_vals": form_vals,
+        "active_dates": active_dates,
+    })
 
 
 @login_required

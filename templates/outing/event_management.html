@@ -22,7 +22,8 @@
     </div>
   </div>
 
-  <!-- Active / recent event dates -->
+  <!-- Configured / Active event dates -->
+  {% if events %}
   <div class="card">
     <div class="card-header">Event Dates</div>
     <div class="card-body p-0">
@@ -31,47 +32,68 @@
           <thead class="table-light">
             <tr>
               <th>Date</th>
-              <th class="text-center">Total Rounds</th>
+              <th>Configured?</th>
+              <th>Course / Tee</th>
               <th class="text-center">Open Rounds</th>
-              <th></th>
+              <th class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {% for row in dates %}
-              <tr>
-                <td>{{ row.event_date }}</td>
-                <td class="text-center">{{ row.total_rounds }}</td>
+            {% for e in events %}
+              <tr class="{% if e.is_current %}table-info{% endif %}">
+                <td>{{ e.event_date }}</td>
+                <td>
+                  {% if e.is_current %}
+                    <span class="badge bg-primary">Current</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="small">
+                  {% if e.course %}{{ e.course }}{% else %}—{% endif %}
+                  {% if e.course and e.tee %} — {{ e.tee }}{% endif %}
+                </td>
                 <td class="text-center">
-                  {% if row.open_rounds > 0 %}
-                    <span class="badge bg-warning text-dark">{{ row.open_rounds }}</span>
+                  {% if e.open_rounds > 0 %}
+                    <span class="badge bg-warning text-dark">{{ e.open_rounds }}</span>
                   {% else %}
                     <span class="badge bg-success">0</span>
                   {% endif %}
                 </td>
                 <td class="text-end">
-                  {% if row.open_rounds > 0 %}
-                    <form method="post" class="d-inline">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="close">
-                      <input type="hidden" name="event_date" value="{{ row.event_date|date:'Y-m-d' }}">
-                      <button class="btn btn-sm btn-outline-danger"
-                              onclick="return confirm('Finalize all open rounds for {{ row.event_date }}?');">
-                        Close Event
-                      </button>
-                    </form>
-                  {% else %}
-                    <span class="text-muted small">Closed</span>
-                  {% endif %}
+                  <!-- Create rounds for all teams (disabled if any are already open) -->
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="event_date" value="{{ e.event_date|date:'Y-m-d' }}">
+                    <button class="btn btn-outline-primary btn-sm"
+                            name="action" value="create_rounds"
+                            {% if e.open_rounds > 0 %}disabled{% endif %}
+                            title="Create empty rounds for all teams">
+                      Create rounds
+                    </button>
+                  </form>
+
+                  <!-- Close event (finalize all open rounds) -->
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="event_date" value="{{ e.event_date|date:'Y-m-d' }}">
+                    <button class="btn btn-danger btn-sm"
+                            name="action" value="close_event"
+                            {% if e.open_rounds == 0 %}disabled{% endif %}
+                            onclick="return confirm('Finalize all open rounds for {{ e.event_date }}?');">
+                      Close
+                    </button>
+                  </form>
                 </td>
               </tr>
-            {% empty %}
-              <tr><td colspan="4" class="text-center text-muted py-4">No rounds yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
   </div>
-
+  {% else %}
+    <div class="alert alert-secondary">No configured or active events yet.</div>
+  {% endif %}
 </div>
 {% endblock %}
