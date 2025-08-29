@@ -14,6 +14,9 @@
           <div class="fw-bold text-muted">Yardage</div>
           <div class="display-6">
             {{ yardage }}
+            {% if tee_cue %}
+                <span class="badge bg-primary align-middle ms-2">{{ tee_cue }}</span>
+            {% endif %}
             </div>
         </div>
       </div>

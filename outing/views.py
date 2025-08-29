@@ -1023,16 +1023,15 @@ def hole_score(request, round_id: int, hole: int):
         if hobj:
             par = hobj.par
             if tee:
-                y = (
+                yd = (
                     TeeYardage.objects
-                    .select_related("tee", "hole")
                     .filter(tee=tee, hole=hobj)
-                    .only("yards", "designation")
+                    .values("yards", "designation")
                     .first()
                 )
-                if y:
-                    yardage = y.yards
-                    tee_cue = (y.designation or "").title()
+                if yd:
+                    yardage = yd["yards"]
+                    tee_cue = (yd["designation"] or "").title()
     else:
         # legacy fallback
         par_obj = CoursePar.objects.filter(hole=hole).first()
