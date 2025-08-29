@@ -20,7 +20,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.templatetags.static import static
 
-from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse, ArchiveEvent
+from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse, ArchiveEvent, Course, Hole, TeeBox, TeeYardage
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
 from .magic_utils import create_magic_link, validate_token
 
@@ -39,6 +39,24 @@ def home_view(request):
 def home_public(request):
     events = ArchiveEvent.objects.filter(published=True).order_by("-year", "kind")
     return render(request, "outing/home_public.html", {"events": events})
+
+
+def _event_course_info():
+    es = EventSettings.load()
+    if not es.scoring_course_id:
+        par_by_hole = {p.hole: p.par for p in CoursePar.objects.all()}
+        yards_by_hole = {}
+        return par_by_hole, yards_by_hole
+
+    par_by_hole = {h.number: h.par for h in Hole.objects.filter(course=es.scoring_course)}
+    yards_by_hole = {}
+    if es.scoring_tee_id:
+        yards_by_hole = {
+            y.hole.number: y.yards
+            for y in TeeYardage.objects.filter(tee=es.scoring_tee).select_related("hole")
+        }
+    return par_by_hole, yards_by_hole
+
 
 
 @staff_member_required
@@ -239,8 +257,19 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
 
 
 def _leaderboard_rows(event_date: date):
-    # Par per hole
-    par_by_hole = {p.hole: p.par for p in CoursePar.objects.all()}
+    # Prefer the configured course’s hole pars; else fall back to CoursePar
+    settings = EventSettings.load()
+    course = settings.scoring_course
+
+    if course:
+        # e.g., Arrowhead GC’s active layout
+        par_by_hole = {
+            h.number: h.par
+            for h in Hole.objects.filter(course=course).only("number", "par")
+        }
+    else:
+        # legacy fallback
+        par_by_hole = {p.hole: p.par for p in CoursePar.objects.all()}
 
     rounds = (
         Round.objects
@@ -316,7 +345,6 @@ def _leaderboard_rows(event_date: date):
         row["rank"] = f"T-{place}" if freq[val] > 1 else str(place)
 
     return rows
-
 
 
 @login_required
@@ -969,14 +997,12 @@ def hole_score(request, round_id: int, hole: int):
         score.save(update_fields=["strokes"])
 
         p = rnd.team.players.filter(pk=drive_pid).first()
-        if p:
-            DriveUsed.objects.update_or_create(score=score, defaults={"player": p})
-        else:
-            # Shouldn't happen if the form is correct, but guard anyway
+        if not p:
             messages.error(request, "Invalid player selection for ‘Drive used’.")
             return redirect("hole_score", round_id=round_id, hole=hole)
 
-        messages.success(request, "Hole saved.")
+        DriveUsed.objects.update_or_create(score=score, defaults={"player": p})
+        messages.success(request, "Score recorded.")
 
         # Advance unless it’s the end of a nine
         if hole in {9, 18}:
@@ -984,10 +1010,26 @@ def hole_score(request, round_id: int, hole: int):
         next_hole = min(hole + 1, 18)
         return redirect("hole_score", round_id=rnd.id, hole=next_hole)
 
-    # GET: display
-    par_obj = CoursePar.objects.filter(hole=hole).first()
-    par = par_obj.par if par_obj else "—"
-    yardage = "—"  # placeholder
+    # ---------- GET: show par + yardage from EventSettings course/tee ----------
+    par = "—"
+    yardage = "—"
+    settings = EventSettings.load()
+    course = settings.scoring_course
+    tee    = settings.scoring_tee
+
+    if course:
+        hobj = Hole.objects.filter(course=course, number=hole).only("par").first()
+        if hobj:
+            par = hobj.par
+            if tee:
+                y = TeeYardage.objects.filter(tee=tee, hole=hobj).only("yards").first()
+                if y:
+                    yardage = y.yards
+    else:
+        # legacy fallback
+        par_obj = CoursePar.objects.filter(hole=hole).first()
+        if par_obj:
+            par = par_obj.par
 
     current_drive_pid = getattr(getattr(score, "drive_used", None), "player_id", None)
     players = rnd.team.players.all().order_by("last_name", "first_name")

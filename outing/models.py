@@ -82,11 +82,48 @@ class CoursePar(models.Model):
     def __str__(self):
         return f"H{self.hole} Par {self.par}"
 
+# improved scorecard / course func
+class Course(models.Model):
+    name  = models.CharField(max_length=120, unique=True)      # e.g. "Arrowhead GC"
+    city  = models.CharField(max_length=80, blank=True)
+    state = models.CharField(max_length=40, blank=True)
+    def __str__(self): return self.name
+
+class Hole(models.Model):
+    course   = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="holes")
+    number   = models.PositiveSmallIntegerField()               # 1–18 for the event layout
+    par      = models.PositiveSmallIntegerField()
+    men_hdcp = models.PositiveSmallIntegerField(null=True, blank=True)
+    wom_hdcp = models.PositiveSmallIntegerField(null=True, blank=True)
+    class Meta:
+        unique_together = ("course", "number")
+        ordering = ["number"]
+
+class TeeBox(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="tees")
+    name   = models.CharField(max_length=32)                    # "Blue", "White", "Red"
+    rating = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    slope  = models.PositiveSmallIntegerField(null=True, blank=True)
+    class Meta:
+        unique_together = ("course", "name")
+    def __str__(self): return f"{self.course} – {self.name}"
+
+class TeeYardage(models.Model):
+    tee   = models.ForeignKey(TeeBox, on_delete=models.CASCADE, related_name="yardages")
+    hole  = models.ForeignKey(Hole, on_delete=models.CASCADE, related_name="yardages")
+    yards = models.PositiveIntegerField()
+    class Meta:
+        unique_together = ("tee", "hole")
+
 
 class EventSettings(models.Model):
     event_name = models.CharField(max_length=80, default="Beer Open")
     event_date = models.DateField(default=date.today)
     leaderboard_public = models.BooleanField(default=False)
+    scoring_course = models.ForeignKey(Course, null=True, blank=True,
+                                       on_delete=models.SET_NULL, related_name="+")
+    scoring_tee    = models.ForeignKey(TeeBox, null=True, blank=True,
+                                       on_delete=models.SET_NULL, related_name="+")
 
     class Meta:
         verbose_name = "Event settings"
@@ -193,3 +230,6 @@ class ArchiveImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.event} ({self.id})"
+
+
+
