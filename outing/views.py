@@ -58,10 +58,71 @@ def _event_course_info():
     return par_by_hole, yards_by_hole
 
 
-
 @staff_member_required
 def admin_hub_view(request):
     return render(request, "outing/admin_hub.html")
+
+
+@staff_member_required
+@require_http_methods(["GET", "POST"])
+def event_management_view(request):
+    """
+    Simple dashboard for events:
+      - show 'active' event dates (any date with at least one unfinalized round)
+      - close an event (finalize all still-open rounds for that date)
+      - link to 'kick off a new event' (placeholder)
+    """
+    # POST: close an event by date (YYYY-MM-DD)
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "close":
+            date_str = (request.POST.get("event_date") or "").strip()
+            if not date_str:
+                messages.error(request, "No event date provided.")
+                return redirect("event_management")
+            try:
+                from datetime import date as _d
+                y, m, d = [int(x) for x in date_str.split("-")]
+                target = _d(y, m, d)
+            except Exception:
+                messages.error(request, f"Invalid date: {date_str}")
+                return redirect("event_management")
+
+            open_qs = Round.objects.filter(event_date=target, finalized_at__isnull=True)
+            updated = open_qs.update(finalized_at=now(), finalized_by=request.user)
+            if updated:
+                messages.success(request, f"Closed event {target} (finalized {updated} round(s)).")
+            else:
+                messages.info(request, f"No open rounds to close for {target}.")
+            return redirect("event_management")
+
+    # GET: build list of event dates with stats
+    # 'Active' = dates that still have at least one unfinalized round
+    dates = (
+        Round.objects
+        .values("event_date")
+        .annotate(
+            total_rounds=Count("id"),
+            open_rounds=Count("id", filter=Q(finalized_at__isnull=True)),
+        )
+        .order_by("-event_date")
+    )
+
+    es = EventSettings.load()  # singleton (current settings)
+    context = {
+        "dates": dates,
+        "settings": es,
+    }
+    return render(request, "outing/event_management.html", context)
+
+
+@staff_member_required
+def event_setup_placeholder(request):
+    """
+    Placeholder page the 'Kick off new event' button links to.
+    You’ll replace this with the real multi-step setup later.
+    """
+    return render(request, "outing/event_setup_placeholder.html", {})
 
 
 @login_required

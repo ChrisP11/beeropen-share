@@ -4,6 +4,10 @@
 <h2>Admin Tools</h2>
 
 <div class="list-group my-3">
+  <a class="list-group-item list-group-item-action" href="{% url 'event_management' %}">
+    Event Management
+    <small class="text-muted d-block">Close an event (finalize all remaining rounds). Kick off a new event.</small>
+  </a>
   <a class="list-group-item list-group-item-action" href="{% url 'sms_broadcast' %}">
     SMS Broadcast
     <small class="text-muted d-block">Send a message to all playing participants or a single team.</small>

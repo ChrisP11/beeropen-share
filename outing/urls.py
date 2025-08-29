@@ -20,6 +20,8 @@ urlpatterns = [
     path("admin/sms/replies/",   views.sms_replies_view,   name="sms_replies"),  
     path("admin/players/sizes/", views.player_sizes_view, name="player_sizes"),
     path("admin/sms/broadcast/", views.sms_broadcast_view, name="sms_broadcast"),
+    path("admin/events/", views.event_management_view, name="event_management"),
+    path("admin/events/setup/", views.event_setup_placeholder, name="event_setup"),
 
     # SMS + Auth
     path("accounts/magic/", views.magic_request_view, name="magic_request"),
