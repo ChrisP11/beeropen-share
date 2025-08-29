@@ -1013,6 +1013,7 @@ def hole_score(request, round_id: int, hole: int):
     # ---------- GET: show par + yardage from EventSettings course/tee ----------
     par = "—"
     yardage = "—"
+    tee_cue = ""  # NEW: e.g. "Blue" / "White" for combo tees
     settings = EventSettings.load()
     course = settings.scoring_course
     tee    = settings.scoring_tee
@@ -1022,9 +1023,16 @@ def hole_score(request, round_id: int, hole: int):
         if hobj:
             par = hobj.par
             if tee:
-                y = TeeYardage.objects.filter(tee=tee, hole=hobj).only("yards").first()
+                y = (
+                    TeeYardage.objects
+                    .select_related("tee", "hole")
+                    .filter(tee=tee, hole=hobj)
+                    .only("yards", "designation")
+                    .first()
+                )
                 if y:
                     yardage = y.yards
+                    tee_cue = (y.designation or "").title()
     else:
         # legacy fallback
         par_obj = CoursePar.objects.filter(hole=hole).first()
@@ -1044,5 +1052,6 @@ def hole_score(request, round_id: int, hole: int):
         "current_drive_pid": current_drive_pid,
         "selected_strokes": score.strokes or 4,
         "can_edit": can_edit,
+        "tee_cue": tee_cue, 
     }
     return render(request, "outing/hole_score.html", context)

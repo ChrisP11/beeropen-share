@@ -115,6 +115,17 @@ class TeeYardage(models.Model):
     class Meta:
         unique_together = ("tee", "hole")
 
+    # NEW: for combo tees, which base tee's yardage did we use?
+    designation = models.CharField(
+        max_length=16,
+        blank=True,
+        choices=[("blue", "Blue"), ("white", "White")],
+        help_text="For combo tees like Blue/White, which base tee was used on this hole."
+    )
+
+    class Meta:
+        unique_together = ("tee", "hole")
+
 
 class EventSettings(models.Model):
     event_name = models.CharField(max_length=80, default="Beer Open")
