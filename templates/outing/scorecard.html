@@ -19,7 +19,6 @@
             <th scope="col" class="text-center">
               <a href="{% url 'hole_score' round.id h.n %}">{{ h.n }}</a>
             </th>
-            <!-- <th>{{ h.n }}</th> -->
             {% if h.n == 9 %}
               <th class="table-secondary">Out</th>
             {% endif %}
@@ -32,7 +31,7 @@
       </thead>
 
       <tbody>
-        <!-- Team Strokes row -->
+        {# --- Team Strokes row --- #}
         <tr>
           <th>Strokes</th>
           {% for h in holes %}
@@ -68,37 +67,47 @@
                 {% endfor %}
               {% endif %}
             </td>
+            {% if h.n == 9 %}
+              <td class="table-secondary"></td>
+            {% endif %}
+            {% if h.n == 18 %}
+              <td class="table-secondary"></td>
+              <td class="table-secondary"></td>
+            {% endif %}
+          {% endfor %}
         </tr>
-        </table>
+      </tbody>
+    </table>
+  </div>
 
-        <hr>
-        <h5>Drive Quota (per nine)</h5>
-        <div class="row">
-        <div class="col-md-6 mb-2">
-            <div class="card">
-            <div class="card-header">Front (1–9)</div>
-            <div class="card-body">
-                {% for pi in players_info %}
-                <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
-                    {{ pi.initials }}: {{ pi.front }}
-                </span>
-                {% endfor %}
-            </div>
-            </div>
+  <hr>
+
+  <h5>Drive Quota (per nine)</h5>
+  <div class="row">
+    <div class="col-md-6 mb-2">
+      <div class="card">
+        <div class="card-header">Front (1–9)</div>
+        <div class="card-body">
+          {% for pi in players_info %}
+            <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
+              {{ pi.initials }}: {{ pi.front }}
+            </span>
+          {% endfor %}
         </div>
-        <div class="col-md-6 mb-2">
-            <div class="card">
-            <div class="card-header">Back (10–18)</div>
-            <div class="card-body">
-                {% for pi in players_info %}
-                <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
-                    {{ pi.initials }}: {{ pi.back }}
-                </span>
-                {% endfor %}
-            </div>
-            </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-2">
+      <div class="card">
+        <div class="card-header">Back (10–18)</div>
+        <div class="card-body">
+          {% for pi in players_info %}
+            <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
+              {{ pi.initials }}: {{ pi.back }}
+            </span>
+          {% endfor %}
         </div>
-        </div>
+      </div>
+    </div>
   </div>
 
   {% if not is_final %}
