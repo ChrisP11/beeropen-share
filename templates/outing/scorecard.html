@@ -55,17 +55,19 @@
         </tr>
 
         <!-- Drive Used row -->
-        <!-- <tr>
+        <tr>
         <th>Drive Used</th>
-        {% if h.drive_pid %}
-          {% for pi in players_info %}
-            {% if pi.id == h.drive_pid %}
-              {{ pi.first }} {{ pi.last }}
-            {% endif %}
-          {% endfor %}
-        {% endif %}
-        </tr> -->
         {% for h in holes %}
+          {% if h.drive_pid %}
+            {% for pi in players_info %}
+              {% if pi.id == h.drive_pid %}
+                {{ pi.first }} {{ pi.last }}{{ pi.initials }}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+        </tr>
+        <!-- {% for h in holes %}
             <td>
             {% if can_edit %}
                 <div class="d-flex flex-wrap gap-2">
@@ -100,7 +102,7 @@
             <td class="table-secondary"></td>
             {% endif %}
         {% endfor %}
-        </tr>
+        </tr> -->
         </table>
 
         <hr>
