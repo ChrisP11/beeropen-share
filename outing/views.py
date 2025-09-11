@@ -43,11 +43,11 @@ def home_public(request):
     qs = ArchiveEvent.objects.filter(published=True)
 
     # Pick the most recent event by actual event date; tie-break on id
-    current_event = qs.order_by("-date", "-id").first()
+    current_event = qs.order_by("date", "-id").first()
 
     # Past events = everything else, keep your existing ordering style
     events = qs.exclude(pk=current_event.pk) if current_event else qs
-    events = events.order_by("-year", "kind")
+    events = events.order_by("-year", "kind").exclude(year=2025)
 
     return render(
         request,
