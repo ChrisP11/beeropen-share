@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>{{ team.name }} — Scorecard ({{ round.event_date }})</h2>
+<h2>{{ team.name }}</h2>
+
+<a href="{% url 'leaderboard' %}" class="btn btn-secondary mb-3">Leaderboard</a>
 
 {% if is_final %}
   <div class="alert alert-success">
@@ -82,11 +84,11 @@
 
   <hr>
 
-  <h5>Drive Quota (per nine)</h5>
+  <!-- <h5>Drive Quota (per nine)</h5> -->
   <div class="row">
     <div class="col-md-6 mb-2">
       <div class="card">
-        <div class="card-header">Front (1–9)</div>
+        <div class="card-header">Drives Used on Front</div>
         <div class="card-body">
           {% for pi in players_info %}
             <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
@@ -98,7 +100,7 @@
     </div>
     <div class="col-md-6 mb-2">
       <div class="card">
-        <div class="card-header">Back (10–18)</div>
+        <div class="card-header">Drives Used on Back</div>
         <div class="card-body">
           {% for pi in players_info %}
             <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
@@ -110,7 +112,7 @@
     </div>
   </div>
 
-  {% if not is_final %}
+  <!-- {% if not is_final %}
     {% if can_edit %}
       <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
       <button class="btn btn-success"  name="action" value="finalize">Finalize</button>
@@ -119,6 +121,6 @@
     {% if request.user.is_staff %}
       <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
     {% endif %}
-  {% endif %}
+  {% endif %} -->
 </form>
 {% endblock %}
