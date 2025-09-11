@@ -67,42 +67,6 @@
           {% endif %}
         {% endfor %}
         </tr>
-        <!-- {% for h in holes %}
-            <td>
-            {% if can_edit %}
-                <div class="d-flex flex-wrap gap-2">
-                {% for pi in players_info %}
-                    <label class="btn btn-outline-secondary btn-sm mb-1">
-                    <input type="radio"
-                            name="d{{ h.n }}"
-                            value="{{ pi.id }}"
-                            {% if h.drive_pid == pi.id %}checked{% endif %}>
-                    {{ pi.initials }}
-                    <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-secondary{% endif %} ms-1">F {{ pi.front }}</span>
-                    <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-secondary{% endif %} ms-1">B {{ pi.back }}</span>
-                    </label>
-                {% endfor %}
-                <!-- allow clearing -->
-                <label class="btn btn-outline-secondary btn-sm mb-1">
-                    <input type="radio" name="d{{ h.n }}" value=""
-                        {% if not h.drive_pid %}checked{% endif %}> —
-                </label>
-                </div>
-            {% else %}
-                {% if h.drive_pid %}
-                {% for pi in players_info %}{% if pi.id == h.drive_pid %}{{ pi.first }} {{ pi.last }}{% endif %}{% endfor %}
-                {% else %}—{% endif %}
-            {% endif %}
-            </td>
-            {% if h.n == 9 %}
-            <td class="table-secondary"></td>
-            {% endif %}
-            {% if h.n == 18 %}
-            <td class="table-secondary"></td>
-            <td class="table-secondary"></td>
-            {% endif %}
-        {% endfor %}
-        </tr> -->
         </table>
 
         <hr>
