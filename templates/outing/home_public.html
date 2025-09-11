@@ -16,7 +16,8 @@
   <h3 class="mb-3">This Event</h3>
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-4 col-lg-3">
-      <a href="{% url 'outing:archive_event' current_event.id %}">
+      <a href="{% url 'archive_event' current_event.year current_event.kind %}" class="logo-tile ratio ratio-1x1 d-block shadow-sm">
+
         {% if current_event.logo %}
           {% static current_event.logo as logo_url %}
           <img src="{{ logo_url }}" class="img-fluid" alt="{{ current_event.title|default:'Event' }}">

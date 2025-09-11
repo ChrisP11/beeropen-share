@@ -38,10 +38,6 @@ def home_view(request):
 
 
 # testing home page for different looks
-# outing/views.py
-from django.shortcuts import render
-from .models import ArchiveEvent
-
 def home_public(request):
     # Only published events are visible
     qs = ArchiveEvent.objects.filter(published=True)
@@ -61,7 +57,6 @@ def home_public(request):
             "events": events,
         },
     )
-
 
 def _event_course_info():
     es = EventSettings.load()
