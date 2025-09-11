@@ -13,7 +13,6 @@
 
   {# ---- most-recent event ---- #}
 {% if current_event %}
-  <h3 class="mb-3">This Event</h3>
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-4 col-lg-3">
       <a href="{% url 'archive_event' current_event.year current_event.kind %}" class="logo-tile ratio ratio-1x1 d-block shadow-sm">
@@ -26,8 +25,7 @@
         {% endif %}
       </a>
       <div class="small text-muted">
-        {{ current_event.date|date:"F j, Y" }}
-        {% if current_event.course_name %}&nbsp;–&nbsp;{{ current_event.course_name }}{% endif %}
+        <figcaption class="mt-2 fw-bold">{{ current_event.year }} - {{ current_event.kind }}</figcaption>
       </div>
     </div>
   </div>
