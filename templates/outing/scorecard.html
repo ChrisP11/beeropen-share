@@ -54,18 +54,20 @@
           {% endfor %}
         </tr>
 
-        <!-- Drive Used row -->
+        {# --- Drive Used (initials only) --- #}
         <tr>
-        <th>Drive Used</th>
-        {% for h in holes %}
-          {% if h.drive_pid %}
-            {% for pi in players_info %}
-              {% if pi.id == h.drive_pid %}
-                {{ pi.first }} {{ pi.last }}{{ pi.initials }}
+          <th>Drive Used</th>
+          {% for h in holes %}
+            <td class="text-center">
+              {% if h.drive_pid %}
+                {# find the matching player and print initials #}
+                {% for p in players_info %}
+                  {% if p.id == h.drive_pid %}
+                    {{ p.initials }}
+                  {% endif %}
+                {% endfor %}
               {% endif %}
-            {% endfor %}
-          {% endif %}
-        {% endfor %}
+            </td>
         </tr>
         </table>
 
