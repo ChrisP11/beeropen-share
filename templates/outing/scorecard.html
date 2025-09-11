@@ -60,12 +60,11 @@
         {% if h.drive_pid %}
           {% for pi in players_info %}
             {% if pi.id == h.drive_pid %}
-              {{ pi.initials }}
+              {{ pi.first }} {{ pi.last }}
             {% endif %}
           {% endfor %}
         {% endif %}
         </tr>
-        </table>
 
         <hr>
         <h5>Drive Quota (per nine)</h5>
