@@ -14,19 +14,20 @@
   {# ---- most-recent event ---- #}
 {% if current_event %}
   <div class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-lg-3">
-      <a href="{% url 'archive_event' current_event.year current_event.kind %}" class="logo-tile ratio ratio-1x1 d-block shadow-sm">
+    <div class="col-6 col-md-4 col-lg-3 d-flex justify-content-center">
+            <figure class="text-center m-0" style="max-width: 260px; width: 100%;">
+              <a href="{% url 'archive_event' current_event.year current_event.kind %}" class="logo-tile ratio ratio-1x1 d-block shadow-sm">
 
-        {% if current_event.logo %}
-          {% static current_event.logo as logo_url %}
-          <img src="{{ logo_url }}" class="img-fluid" alt="{{ current_event.title|default:'Event' }}">
-        {% else %}
-          {{ current_event.title|default:current_event.year }}
-        {% endif %}
-      </a>
-      <div class="small text-muted">
-        <figcaption class="mt-2 fw-bold">{{ current_event.year }} - {{ current_event.kind }}</figcaption>
-      </div>
+                {% if current_event.logo %}
+                  {% static current_event.logo as logo_url %}
+                  <img src="{{ logo_url }}" class="img-fluid" alt="{{ current_event.title|default:'Event' }}">
+                {% else %}
+                  {{ current_event.title|default:current_event.year }}
+                {% endif %}
+              </a>
+            <figcaption class="mt-2 fw-bold">{{ current_event.year }} - {{ current_event.kind }}</figcaption>
+          </figure>
+        </div>
     </div>
   </div>
 {% endif %}
