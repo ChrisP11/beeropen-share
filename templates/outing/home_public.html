@@ -11,6 +11,27 @@
     <!-- <p><a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a></p> -->
   {% endif %}
 
+  {# ---- most-recent event ---- #}
+{% if current_event %}
+  <h3 class="mb-3">This Event</h3>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-3">
+      <a href="{% url 'outing:archive_event' current_event.id %}">
+        {% if current_event.logo %}
+          {% static current_event.logo as logo_url %}
+          <img src="{{ logo_url }}" class="img-fluid" alt="{{ current_event.title|default:'Event' }}">
+        {% else %}
+          {{ current_event.title|default:current_event.year }}
+        {% endif %}
+      </a>
+      <div class="small text-muted">
+        {{ current_event.date|date:"F j, Y" }}
+        {% if current_event.course_name %}&nbsp;–&nbsp;{{ current_event.course_name }}{% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
 <section class="container my-4">
   <h2 class="h4 mb-3">Past Events</h2>
   <div class="row g-3">

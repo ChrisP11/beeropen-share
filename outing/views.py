@@ -38,9 +38,29 @@ def home_view(request):
 
 
 # testing home page for different looks
+# outing/views.py
+from django.shortcuts import render
+from .models import ArchiveEvent
+
 def home_public(request):
-    events = ArchiveEvent.objects.filter(published=True).order_by("-year", "kind")
-    return render(request, "outing/home_public.html", {"events": events})
+    # Only published events are visible
+    qs = ArchiveEvent.objects.filter(published=True)
+
+    # Pick the most recent event by actual event date; tie-break on id
+    current_event = qs.order_by("-date", "-id").first()
+
+    # Past events = everything else, keep your existing ordering style
+    events = qs.exclude(pk=current_event.pk) if current_event else qs
+    events = events.order_by("-year", "kind")
+
+    return render(
+        request,
+        "outing/home_public.html",
+        {
+            "current_event": current_event,
+            "events": events,
+        },
+    )
 
 
 def _event_course_info():
