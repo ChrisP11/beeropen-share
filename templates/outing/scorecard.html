@@ -167,15 +167,15 @@
     </div>
   </div>
 
-  <!-- {% if not is_final %}
+  {% if not is_final %}
     {% if can_edit %}
       <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
-      <button class="btn btn-success"  name="action" value="finalize">Finalize</button>
+      <!-- <button class="btn btn-success"  name="action" value="finalize">Finalize</button> -->
     {% endif %}
   {% else %}
     {% if request.user.is_staff %}
       <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
     {% endif %}
-  {% endif %} -->
+  {% endif %}
 </form>
 {% endblock %}

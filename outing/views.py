@@ -561,11 +561,13 @@ def _leaderboard_rows(event_date: date):
 def leaderboard_page(request):
     evt = current_event_date()
     rows = _leaderboard_rows(evt)
-    # (optional) gate visibility
+
+    my_team = Team.objects.filter(players__user=request.user).first()
+
     settings = EventSettings.load()
     if not settings.leaderboard_public and not request.user.is_staff:
         return HttpResponseForbidden("Leaderboard is not public.")
-    return render(request, "outing/leaderboard.html", {"rows": rows, "event_date": evt})
+    return render(request, "outing/leaderboard.html", {"rows": rows, "event_date": evt, "my_team": my_team})
 
 @login_required
 def leaderboard_partial(request):
