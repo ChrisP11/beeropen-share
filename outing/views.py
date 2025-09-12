@@ -390,6 +390,19 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
     # ---------- GET: build simple structures for the template ----------
     scores = {s.hole: s for s in Score.objects.filter(round=round_obj).select_related("drive_used")}
     players = list(team.players.order_by("last_name", "first_name"))
+    settings = EventSettings.load()
+    designation_by_hole = {}
+
+    if settings and settings.scoring_tee_id:
+        # hole__number gives us 1..18
+        designation_by_hole = dict(
+            TeeYardage.objects
+            .filter(tee=settings.scoring_tee)
+            .values_list("hole__number", "designation")
+        )
+    else:
+        designation_by_hole = {}
+
 
     holes = []
     out_total = 0
@@ -398,7 +411,7 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
         s = scores.get(h)
         strokes = s.strokes if (s and isinstance(s.strokes, int)) else None
         drive_pid = getattr(getattr(s, "drive_used", None), "player_id", None)
-        holes.append({"n": h, "strokes": strokes, "drive_pid": drive_pid})
+        holes.append({"n": h, "strokes": strokes, "drive_pid": drive_pid, "designation": designation_by_hole.get(h) or "",})
         if strokes is not None:
             if h <= 9:
                 out_total += strokes

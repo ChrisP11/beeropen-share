@@ -16,7 +16,7 @@
     <table class="table table-bordered align-middle">
       <thead>
         <tr>
-          <th>Row</th>
+          <th></th>
           {% for h in holes %}
             <th scope="col" class="text-center">
               <a href="{% url 'hole_score' round.id h.n %}">{{ h.n }}</a>
@@ -33,9 +33,26 @@
       </thead>
 
       <tbody>
+        {# --- Tee Designation row (uses TeeYardage.designation) --- #}
+        <tr>
+          <th>Designation</th>
+          {% for h in holes %}
+            <td class="text-center">
+              {{ h.designation }}
+            </td>
+            {% if h.n == 9 %}
+              <td class="table-secondary"></td>
+            {% endif %}
+            {% if h.n == 18 %}
+              <td class="table-secondary"></td>
+              <td class="table-secondary"></td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        
         {# --- Team Strokes row --- #}
         <tr>
-          <th>Strokes</th>
+          <th>Score</th>
           {% for h in holes %}
             <td style="min-width:64px">
               {% if can_edit %}
@@ -78,9 +95,9 @@
             {% endif %}
           {% endfor %}
         </tr>
-        {# --- Drive Used (dropdown per hole) --- #}
+        {# --- Pick Drive (dropdown per hole) --- #}
         <tr>
-          <th>Drive Used</th>
+          <th>Pick Drive</th>
           {% for h in holes %}
             <td class="text-center" style="min-width:64px">
               {% if can_edit and not is_final %}
