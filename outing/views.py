@@ -862,6 +862,7 @@ def magic_login_view(request, token_id: int, raw: str):
     tok.used_at = now()
     tok.save(update_fields=["used_at"])
     login(request, tok.user)
+    request.session.set_expiry(60 * 60 * 24)  # 24 hours
     messages.success(request, "You’re signed in.")
     return redirect("dashboard")
 
