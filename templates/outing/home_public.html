@@ -8,13 +8,9 @@
   <h3 class="mb-4">Arrowhead Golf Club</h3>
   <div class="d-flex align-items-center justify-content-center h-100"><a href="{% url 'magic_request' %}">Text me a sign-in link</a></div>
 
-  {% if user.is_authenticated %}
-    <!-- <p><a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a></p> -->
-  {% endif %}
-
   {# ---- most-recent event ---- #}
 {% if current_event %}
-  <div class="row g-3 mb-4">
+  <!-- <div class="row g-3 mb-4"> -->
     <div class="col-6 col-md-4 col-lg-3 d-flex justify-content-center">
             <figure class="text-center m-0" style="max-width: 260px; width: 100%;">
               <a href="{% url 'archive_event' current_event.year current_event.kind %}" class="logo-tile ratio ratio-1x1 d-block shadow-sm">
@@ -30,8 +26,12 @@
           </figure>
         </div>
     </div>
-  </div>
+  <!-- </div> -->
 {% endif %}
+
+{% if user.is_authenticated %}
+    <p><a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a></p>
+  {% endif %}
 
 <section class="container my-4">
   <h2 class="h4 mb-3">Past Events</h2>
