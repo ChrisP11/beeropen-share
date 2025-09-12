@@ -28,6 +28,7 @@ from django.templatetags.static import static
 
 from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse, ArchiveEvent, Course, Hole, TeeBox, TeeYardage
 from .sms_utils import prepare_recipients, broadcast, have_twilio_creds, normalize_us_e164, send_sms
+
 from .magic_utils import create_magic_link, validate_token
 
 def current_event_date():
@@ -827,13 +828,17 @@ def magic_request_view(request):
         to_number = normalize_us_e164(player.phone) or ("+1" + last10)
 
 
-        MagicLoginToken.objects.create(
+        mlt = MagicLoginToken.objects.create(
             user=player.user,
             token_hash=token_hash,
             expires_at=expires,
             sent_to=to_number,
         )
-        url = request.build_absolute_uri(reverse("magic_login", args=[token]))
+
+        url = request.build_absolute_uri(
+            reverse("magic_login", kwargs={"token_id": mlt.id, "raw": token})
+        )
+
 
         if have_twilio_creds():
             send_sms(to_number, f"Beer Open login: {url}")
