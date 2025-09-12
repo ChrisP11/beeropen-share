@@ -35,11 +35,13 @@
       <tbody>
         {# --- Tee Designation row (uses TeeYardage.designation) --- #}
         <tr>
-          <th>Designation</th>
+          <th>Tee</th>
           {% for h in holes %}
-            <td class="text-center">
-              {{ h.designation }}
-            </td>
+            {% with d=h.designation|default_if_none:''|lower %}
+              <td class="text-center {% if d == 'blue' %}bg-primary text-white{% elif d == 'white' %}bg-secondary text-white{% endif %}">
+                {{ h.designation }}
+              </td>
+            {% endwith %}
             {% if h.n == 9 %}
               <td class="table-secondary"></td>
             {% endif %}
@@ -49,7 +51,7 @@
             {% endif %}
           {% endfor %}
         </tr>
-        
+
         {# --- Team Strokes row --- #}
         <tr>
           <th>Score</th>
