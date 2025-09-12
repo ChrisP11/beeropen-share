@@ -174,13 +174,6 @@
     </table>
   </div>
 
-  {% if not is_final and can_edit %}
-    <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
-    <!-- <button class="btn btn-success"  name="action" value="finalize">Finalize</button> -->
-  {% elif is_final and request.user.is_staff %}
-    <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
-  {% endif %}
-
 <!-- <h5>Drive Quota (per nine)</h5> -->
   <div class="row">
     <div class="col-md-6 mb-2">
@@ -208,6 +201,12 @@
       </div>
     </div>
   </div>
+    {% if not is_final and can_edit %}
+    <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
+    <!-- <button class="btn btn-success"  name="action" value="finalize">Finalize</button> -->
+  {% elif is_final and request.user.is_staff %}
+    <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
+  {% endif %}
 </form>
 
 <script>
