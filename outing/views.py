@@ -283,6 +283,8 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
     # ---------- POST ----------
     if request.method == "POST":
         action = request.POST.get("action", "save")
+        autosave = (request.POST.get("autosave") == "1")
+
 
         # Admin-only unlock
         if action == "unlock":
@@ -388,7 +390,8 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
             messages.success(request, "Scorecard finalized. Congrats!")
             return redirect("team_scorecard", team_id=team.id)
 
-        messages.success(request, "Saved.")
+        if not autosave:
+            messages.success(request, "Saved.")
         return redirect("team_scorecard", team_id=team.id)
 
     # ---------- GET: build simple structures for the template ----------

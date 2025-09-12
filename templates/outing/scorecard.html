@@ -2,9 +2,6 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">{{ team.name }}</h2>
-  {% if can_edit %}
-    <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
-  {% endif %}
   <a href="{% url 'leaderboard' %}" class="btn btn-secondary mb-3">Leaderboard</a>
 </div>
 
@@ -14,8 +11,10 @@
   </div>
 {% endif %}
 
-<form method="post">
+<form id="scorecard-form" method="post">
   {% csrf_token %}
+  <input type="hidden" name="autosave" value="0">
+
   <div style="overflow-x:auto">
     <table class="table table-bordered align-middle">
       <thead>
@@ -175,9 +174,14 @@
     </table>
   </div>
 
-  <hr>
+  {% if not is_final and can_edit %}
+    <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
+    <button class="btn btn-success"  name="action" value="finalize">Finalize</button>
+  {% elif is_final and request.user.is_staff %}
+    <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
+  {% endif %}
 
-  <!-- <h5>Drive Quota (per nine)</h5> -->
+<!-- <h5>Drive Quota (per nine)</h5> -->
   <div class="row">
     <div class="col-md-6 mb-2">
       <div class="card">
@@ -204,6 +208,50 @@
       </div>
     </div>
   </div>
+</form>
+
+<script>
+(function () {
+  const form = document.getElementById('scorecard-form');
+  if (!form) return;
+
+  const autosaveField = form.querySelector('input[name="autosave"]');
+
+  let isSubmitting = false;
+  let typeTimer = null;
+
+  function submitNow() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    autosaveField.value = "1";           // mark this as an autosave
+    form.submit();                       // full POST, your view redirects back
+  }
+
+  // Drive dropdowns: submit immediately on change
+  form.querySelectorAll('select[name^="d"]').forEach(sel => {
+    sel.addEventListener('change', submitNow);
+  });
+
+  // Score inputs: debounce while typing, submit on blur
+  form.querySelectorAll('input[name^="h"]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      clearTimeout(typeTimer);
+      typeTimer = setTimeout(submitNow, 800); // save ~0.8s after last keystroke
+    });
+    inp.addEventListener('blur', submitNow);
+  });
+
+  // Manual Save/Finalize should **not** be autosave
+  form.querySelectorAll('button[name="action"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      autosaveField.value = "0";
+    });
+  });
+})();
+</script>
+{% endblock %}
+
+  
 <!-- 
   {% if not is_final %}
     {% if can_edit %}
@@ -215,5 +263,4 @@
       <button class="btn btn-warning" name="action" value="unlock">Unlock (admin)</button>
     {% endif %}
   {% endif %} -->
-</form>
-{% endblock %}
+
