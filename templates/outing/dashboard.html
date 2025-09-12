@@ -23,21 +23,24 @@
 </div>
 
 {% if my_team %}
-  <div class="card mb-3">
-    <div class="card-header">Your Team</div>
+<div class="d-flex justify-content-center my-4">
+  <div class="card shadow-sm text-center" style="max-width: 26rem; width: 100%;">
     <div class="card-body">
-      <h5 class="card-title">{{ my_team.name }}</h5>
-      <p class="card-text">
-        Tee time: {{ my_team.tee_time|default:"—" }}
-      </p>
-      <a class="btn btn-success" href="{% url 'team_scorecard' my_team.id %}">
+      <div class="text-muted small mb-1">Your Team</div>
+      <h3 class="mb-2">{{ my_team.name }}</h3>
+
+      {% if my_team.tee_time %}
+        <div class="mb-3">Tee time: {{ my_team.tee_time|time:"g:i A" }}</div>
+      {% endif %}
+
+      <a class="btn btn-primary" href="{% url 'team_scorecard' my_team.id %}">
         Open Scorecard
       </a>
     </div>
   </div>
-{% elif not request.user.is_staff %}
-  <p>You are not currently assigned to a team. Please contact the organizer.</p>
+</div>
 {% endif %}
+
 
 {% if request.user.is_staff and teams %}
   <h4>All Teams</h4>
