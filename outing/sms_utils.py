@@ -61,3 +61,19 @@ def broadcast(numbers: List[str], body: str, dry_run: bool = False) -> Dict[str,
             errors.append((to, str(e)))
 
     return {"sent": sent, "errors": errors, "invalid": invalid}
+
+def normalize_us_e164(raw: str) -> str | None:
+    """Public wrapper so other modules don't import the private helper."""
+    return _normalize_us_phone(raw)
+
+def send_sms(to_number: str, body: str) -> None:
+    """
+    Single-recipient convenience wrapper around broadcast().
+    Raises if Twilio is configured but sending fails.
+    """
+    res = broadcast([to_number], body, dry_run=False)
+    # If Twilio creds are missing, broadcast() returns an error we can surface:
+    if res["errors"]:
+        # Grab the first error message for simplicity
+        _, msg = res["errors"][0]
+        raise RuntimeError(msg)

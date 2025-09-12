@@ -1,7 +1,8 @@
 import csv, io
 import bleach
 import json
-from datetime import date, time
+import re, secrets, hashlib
+from datetime import date, time, timedelta
 from typing import Dict, List, Optional
 from collections import Counter, defaultdict
 from markdown import markdown
@@ -9,23 +10,25 @@ from markdown import markdown
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.models import User
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden, HttpRequest, HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Sum, Case, When, IntegerField, Count, Q
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.timezone import now
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.templatetags.static import static
 
 from .models import Team, Round, Score, DriveUsed, Player, CoursePar, EventSettings, MagicLoginToken, SMSResponse, ArchiveEvent, Course, Hole, TeeBox, TeeYardage
-from .sms_utils import prepare_recipients, broadcast, have_twilio_creds
+from .sms_utils import prepare_recipients, broadcast, have_twilio_creds, normalize_us_e164, send_sms
 from .magic_utils import create_magic_link, validate_token
-
 
 def current_event_date():
     return EventSettings.load().event_date
@@ -779,42 +782,70 @@ def sms_broadcast_view(request):
 
 @require_http_methods(["GET","POST"])
 def magic_request_view(request):
-    """
-    Page where a user enters their phone; we text them a magic sign-in link.
-    We map phone -> Player -> User.
-    """
     if request.method == "POST":
-        raw_phone = (request.POST.get("phone") or "").strip()
-        nums = prepare_recipients([raw_phone])
-        if not nums:
+        raw = (request.POST.get("phone") or "").strip()
+
+        # Normalize: accept (312) 296-1817, 3122961817, +13122961817, etc.
+        digits = re.sub(r"\D+", "", raw)
+        if len(digits) < 10:
             messages.error(request, "Please enter a valid US phone number.")
-            return redirect("magic_request")
+            return render(request, "outing/magic_request.html")
 
-        phone = nums[0]
-        # Find the player by phone (exact match after normalization)
-        player = Player.objects.filter(phone__iexact=raw_phone).first() or \
-                 Player.objects.filter(phone__iexact=phone.replace("+1","")).first() or \
-                 Player.objects.filter(phone__icontains=raw_phone[-10:]).first()
+        last10 = digits[-10:]
+        # Find by last 10 digits so formatting in DB doesn’t matter
+        player = Player.objects.filter(phone__icontains=last10).first()
 
-        if not player or not player.user:
-            messages.error(request, "We couldn’t find an account for that phone.")
-            return redirect("magic_request")
+        if not player:
+            messages.error(request, "We couldn’t find that phone number. Ask an admin to add/update your phone on the roster.")
+            return render(request, "outing/magic_request.html")
 
-        if not have_twilio_creds():
-            messages.error(request, "SMS is not configured.")
-            return redirect("magic_request")
+        # Ensure the Player is linked to a Django User; create one if missing
+        if not player.user:
+            # Prefer email’s local part as username if available; else a stable fallback
+            base_username = (player.email.split("@")[0] if player.email else f"p{player.id}")
+            username = base_username
+            # Make sure username is unique
+            i = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{i}"
+                i += 1
 
-        url = create_magic_link(request, player.user, ttl_seconds=15*60, sent_to=phone)
-        body = f"Beer Open sign-in link (15 min): {url}"
-        res = broadcast([phone], body, dry_run=False)
+            user = User.objects.create(
+                username=username,
+                first_name=player.first_name,
+                last_name=player.last_name,
+                email=player.email or "",
+            )
+            player.user = user
+            player.save()
 
-        if res["errors"]:
-            messages.error(request, f"Send failed to {phone}.")
+        # Build token + link (15-minute expiry)
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        expires = timezone.now() + timedelta(minutes=15)
+        # to_number = "+1" + last10  # E.164 US
+        to_number = normalize_us_e164(player.phone) or ("+1" + last10)
+
+
+        MagicLoginToken.objects.create(
+            user=player.user,
+            token_hash=token_hash,
+            expires_at=expires,
+            sent_to=to_number,
+        )
+        url = request.build_absolute_uri(reverse("magic_login", args=[token]))
+
+        if have_twilio_creds():
+            send_sms(to_number, f"Beer Open login: {url}")
+            messages.success(request, "Text sent! Check your phone.")
         else:
-            messages.success(request, f"Text sent to {phone}.")
-        return redirect("magic_request")
+            # Fallback for local/dev without Twilio
+            messages.info(request, f"Twilio not configured. Use this link: {url}")
+
+        return redirect("home_public")
 
     return render(request, "outing/magic_request.html")
+
 
 def magic_login_view(request, token_id: int, raw: str):
     tok = validate_token(token_id, raw)
