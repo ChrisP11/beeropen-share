@@ -180,10 +180,16 @@
       <div class="card">
         <!-- <div class="card-header">Drives Used on Front</div> -->
         <div class="card-body">
-          front
+          Front: &nbsp;
           {% for pi in players_info %}
             <span class="badge {% if pi.front == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
               {{ pi.initials }}: {{ pi.front }}
+            </span>
+          {% endfor %}
+          Back: &nbsp;
+          {% for pi in players_info %}
+            <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
+              {{ pi.initials }}: {{ pi.back }}
             </span>
           {% endfor %}
         </div>
