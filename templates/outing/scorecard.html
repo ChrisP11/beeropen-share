@@ -55,6 +55,29 @@
           {% endfor %}
         </tr>
 
+        {# --- Drive Used (initials only) --- #}
+        <tr>
+          <th>Drive Used</th>
+          {% for h in holes %}
+            <td class="text-center">
+              {% if h.drive_pid %}
+                {# find the matching player and print initials #}
+                {% for p in players_info %}
+                  {% if p.id == h.drive_pid %}
+                    {{ p.initials }}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            </td>
+            {% if h.n == 9 %}
+              <td class="table-secondary"></td>
+            {% endif %}
+            {% if h.n == 18 %}
+              <td class="table-secondary"></td>
+              <td class="table-secondary"></td>
+            {% endif %}
+          {% endfor %}
+        </tr>
         {# --- Drive Used (dropdown per hole) --- #}
         <tr>
           <th>Drive Used</th>
@@ -81,6 +104,8 @@
                 {% endif %}
               {% endif %}
             </td>
+
+            {# add the extra summary cells after 9 and 18 just like your strokes row #}
             {% if h.n == 9 %}
               <td class="table-secondary"></td>
             {% endif %}
@@ -89,7 +114,6 @@
               <td class="table-secondary"></td>
             {% endif %}
           {% endfor %}
-        </tr>
       </tbody>
     </table>
   </div>
