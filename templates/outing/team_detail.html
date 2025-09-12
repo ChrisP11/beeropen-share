@@ -4,8 +4,10 @@
   <h2 class="mb-0">{{ team.name }}</h2>
 
   <div>
-    <a class="btn btn-secondary me-2" href="{% url 'leaderboard' %}">Back to Leaderboard</a>
-    <a class="btn btn-primary" href="{% url 'dashboard' %}">Dashboard</a>
+    <span>
+        <a class="btn btn-secondary me-2" href="{% url 'leaderboard' %}">Leaderboard</a>
+        <a class="btn btn-primary" href="{% url 'dashboard' %}">Dashboard</a>
+    </span>
   </div>
 </div>
 
