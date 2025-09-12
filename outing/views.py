@@ -587,6 +587,15 @@ def leaderboard_partial(request):
     return render(request, "outing/_leaderboard_table.html", {"rows": rows})
 
 
+def team_detail_view(request, team_id: int):
+    team = get_object_or_404(Team, pk=team_id)
+    players = team.players.order_by("last_name", "first_name")
+    return render(request, "outing/team_detail.html", {
+        "team": team,
+        "players": players,
+    })
+
+
 @login_required
 def dashboard_view(request):
     """

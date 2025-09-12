@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{{ team.name }}</h2>
+
+  <div>
+    <a class="btn btn-secondary me-2" href="{% url 'leaderboard' %}">Back to Leaderboard</a>
+    <a class="btn btn-primary" href="{% url 'dashboard' %}">Dashboard</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Players</div>
+  <ul class="list-group list-group-flush">
+    {% for p in players %}
+      <li class="list-group-item">
+        {{ p.first_name }} {{ p.last_name }}
+        {% if p.email %}<span class="text-muted"> · {{ p.email }}</span>{% endif %}
+      </li>
+    {% empty %}
+      <li class="list-group-item text-muted">No players on this team.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
