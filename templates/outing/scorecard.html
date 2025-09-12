@@ -195,18 +195,6 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6 mb-2">
-      <div class="card">
-        <!-- <div class="card-header">Drives Used on Back</div> -->
-        <div class="card-body">
-          {% for pi in players_info %}
-            <span class="badge {% if pi.back == 0 %}bg-danger{% else %}bg-success{% endif %} me-2 mb-2">
-              {{ pi.initials }}: {{ pi.back }}
-            </span>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
   </div>
     {% if not is_final and can_edit %}
     <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
