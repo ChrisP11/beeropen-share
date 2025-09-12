@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<!-- <h2>{{ team.name }}</h2>
-
-<a href="{% url 'leaderboard' %}" class="btn btn-secondary mb-3">Leaderboard</a> -->
-
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">{{ team.name }}</h2>
   <a href="{% url 'leaderboard' %}" class="btn btn-secondary mb-3">Leaderboard</a>
@@ -45,6 +41,25 @@
             {% with d=h.designation|default_if_none:''|lower %}
               <td class="text-center {% if d == 'blue' %}bg-primary text-white{% elif d == 'white' %}bg-secondary text-white{% endif %}">
                 {{ h.designation }}
+              </td>
+            {% endwith %}
+            {% if h.n == 9 %}
+              <td class="table-secondary"></td>
+            {% endif %}
+            {% if h.n == 18 %}
+              <td class="table-secondary"></td>
+              <td class="table-secondary"></td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+
+        {# --- Tee yardage row (uses TeeYardage.yards) --- #}
+        <tr>
+          <th>YDG</th>
+          {% for h in holes %}
+            {% with d=h.yards|default_if_none:''|lower %}
+              <td class="text-center">
+                {{ h.yards }}
               </td>
             {% endwith %}
             {% if h.n == 9 %}
