@@ -406,7 +406,8 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
         )
     else:
         designation_by_hole = {}
-
+    
+    par_by_hole, yards_by_hole = _event_course_info()
 
     holes = []
     out_total = 0
@@ -415,7 +416,14 @@ def team_scorecard_view(request: HttpRequest, team_id: int) -> HttpResponse:
         s = scores.get(h)
         strokes = s.strokes if (s and isinstance(s.strokes, int)) else None
         drive_pid = getattr(getattr(s, "drive_used", None), "player_id", None)
-        holes.append({"n": h, "strokes": strokes, "drive_pid": drive_pid, "designation": designation_by_hole.get(h) or "",})
+        holes.append({
+            "n": h, 
+            "strokes": strokes, 
+            "drive_pid": drive_pid, 
+            "designation": designation_by_hole.get(h) or "",
+            "par": par_by_hole.get(h),
+            "yards": yards_by_hole.get(h), 
+            })
         if strokes is not None:
             if h <= 9:
                 out_total += strokes

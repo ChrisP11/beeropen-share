@@ -53,15 +53,30 @@
           {% endfor %}
         </tr>
 
-        {# --- Tee yardage row (uses TeeYardage.yards) --- #}
+        {# --- Par row --- #}
         <tr>
-          <th>YDG</th>
+          <th>Par</th>
           {% for h in holes %}
-            {% with d=h.yards|default_if_none:''|lower %}
-              <td class="text-center">
-                {{ h.yards }}
-              </td>
-            {% endwith %}
+            <td class="text-center">
+              {{ h.par|default:"" }}
+            </td>
+            {% if h.n == 9 %}
+              <td class="table-secondary"></td>
+            {% endif %}
+            {% if h.n == 18 %}
+              <td class="table-secondary"></td>
+              <td class="table-secondary"></td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+
+        {# --- Yds row --- #}
+        <tr>
+          <th>Yds</th>
+          {% for h in holes %}
+            <td class="text-center">
+              {{ h.yards|default:"" }}
+            </td>
             {% if h.n == 9 %}
               <td class="table-secondary"></td>
             {% endif %}
