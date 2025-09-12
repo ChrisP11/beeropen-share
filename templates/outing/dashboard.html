@@ -15,8 +15,9 @@
 
 <div class="mb-3">
   <a class="btn btn-primary" href="{% url 'leaderboard' %}">Leaderboard</a>
-  <br>
+  </div>
   {% if request.user.is_staff %}
+<div class="mb-3">
     <a class="btn btn-outline-secondary" href="{% url 'team_manage' %}">Team Manager</a>
   {% endif %}
 </div>
