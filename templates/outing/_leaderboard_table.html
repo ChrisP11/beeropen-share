@@ -13,7 +13,7 @@
       {% for r in rows %}
         <tr>
           <td>{{ r.rank|default:"—" }}</td>
-          <td><a href="{% url 'team_detail' row.team_id %}"> {{ r.team_name }}</td>
+          <td><a href="{% url 'team_detail' r.team_id %}"> {{ r.team_name }}</td>
           <td class="fw-bold">{{ r.to_par_str|default:"—" }}</td>
           <td>{% if r.holes_entered %}Thru {{ r.holes_entered }}{% else %}—{% endif %}</td>
           <!-- <td><a class="btn btn-sm btn-outline-primary" href="{% url 'team_scorecard' r.team_id %}">Open</a></td> -->
