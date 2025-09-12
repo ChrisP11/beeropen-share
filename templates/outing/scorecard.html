@@ -2,6 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">{{ team.name }}</h2>
+  {% if can_edit %}
+    <button class="btn btn-secondary me-2" name="action" value="save">Save</button>
+  {% endif %}
   <a href="{% url 'leaderboard' %}" class="btn btn-secondary mb-3">Leaderboard</a>
 </div>
 
