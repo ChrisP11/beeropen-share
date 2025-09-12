@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <h2>Beer Open 2025, 23rd Annual</h2>
-<p class="text-muted">Event date: {{ event_date }}</p>
+<p class="text-muted">{{ event_date }}</p>
 <!-- <a href="{% url 'magic_request' %}">Text me a sign-in link</a> -->
 <br>
 
@@ -13,14 +13,14 @@
 {% endif %}
 
 
-<div class="mb-3">
+<!-- <div class="mb-3">
   <a class="btn btn-primary" href="{% url 'leaderboard' %}">Leaderboard</a>
-  </div>
-  {% if request.user.is_staff %}
-<div class="mb-3">
+  </div> -->
+  <!-- {% if request.user.is_staff %} -->
+<!-- <div class="mb-3">
     <a class="btn btn-outline-secondary" href="{% url 'team_manage' %}">Team Manager</a>
   {% endif %}
-</div>
+</div> -->
 
 {% if my_team %}
 <div class="d-flex justify-content-center my-4">
@@ -36,6 +36,10 @@
       <a class="btn btn-primary" href="{% url 'team_scorecard' my_team.id %}">
         Open Scorecard
       </a>
+      <a class="btn btn-secondary" href="{% url 'leaderboard' %}">Leaderboard</a>
+      {% if request.user.is_staff %}
+        <a class="btn btn-outline-secondary" href="{% url 'team_manage' %}">Team Manager</a>
+      {% endif %}
     </div>
   </div>
 </div>
