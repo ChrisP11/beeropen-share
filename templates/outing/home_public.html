@@ -18,6 +18,9 @@
           {% static current_event.logo as logo_url %}
           <img src="{{ logo_url }}" class="w-100 h-100" style="object-fit: contain;"
                alt="{{ current_event.title|default:'Event' }}">
+          {% static current_event.plaque as plaque_url %}
+          <img src="{{ plaque_url }}" class="w-100 h-100" style="object-fit: contain;"
+               alt="{{ current_event.title|default:'Event' }}">
         {% else %}
           <div class="d-flex align-items-center justify-content-center h-100 text-muted">
             {{ current_event.title|default:current_event.year }}
@@ -25,9 +28,10 @@
         {% endif %}
       </a>
       <figcaption class="mt-2 fw-bold">{{ current_event.year }} - {{ current_event.kind }}</figcaption>
+      <h2>Congrats to this year's winners!  Brad Hunter, Mark Menacho, Kevin Sarsany, Darren Tait</h2>
 
       {% if user.is_authenticated %}
-        <a class="btn btn-primary mt-3" href="{% url 'dashboard' %}">Go to Dashboard</a>
+        <a class="btn btn-primary mt-3" href="{% url 'dashboard' %}">Dashboard</a>
       {% endif %}
     </figure>
   </div>
